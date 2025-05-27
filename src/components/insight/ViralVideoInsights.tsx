@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Heart, MessageCircle, Share, Eye, TrendingUp, BarChart3, Users, Trophy, Video, Search, Calendar, ExternalLink, Filter, Star, Timer, Hash, X, Maximize2, Minimize2 } from 'lucide-react';
+import { Play, Heart, MessageCircle, Share, Eye, TrendingUp, BarChart3, Users, Trophy, Video, Search, Calendar, ExternalLink, Filter, Star, Timer, Hash, X, Maximize2, Minimize2, Globe, DollarSign } from 'lucide-react';
 
 interface ViralVideoInsightsProps {
   onNavigate?: (tab: string) => void;
 }
 
-interface DatabaseVideoData {
+// Real database interfaces based on anker.db schema
+interface InsightTkData {
   id: number;
   kol_video_id: string;
   kol_title: string;
@@ -19,6 +20,8 @@ interface DatabaseVideoData {
   brand_mentions: string;
   hashtag_count: number;
   created_date: string;
+  creator_name?: string;
+  platform: string;
 }
 
 interface TikTokVideoData {
@@ -35,380 +38,433 @@ interface TikTokVideoData {
   publish_time: string;
   product_title?: string;
   product_price?: number;
+  engagement_rate: number;
+  platform: string;
+}
+
+interface YouTubeVideoData {
+  id: number;
+  video_id: string;
+  video_title: string;
+  page_url: string;
+  comment_id: string;
+  author: string;
+  comment_text: string;
+  published_date: string;
+  engagement_rate: number;
+  platform: string;
+  estimated_views?: number;
+  estimated_likes?: number;
+}
+
+interface TikTokCreatorData {
+  id: number;
+  creator_name: string;
+  creator_url: string;
+  follower_count: number;
+  video_count: number;
+  sales_last_30_days: number;
+  engagement_rate: number;
+  platform: string;
+}
+
+interface VideoPreviewData {
+  id: number;
+  url: string;
+  title: string;
+  creator: string;
+  platform: string;
+  embedUrl: string;
+  thumbnailUrl: string;
+  views: number;
+  likes: number;
+  comments: number;
+  shares?: number;
+  engagement_rate: number;
+  virality_score?: number;
+  brand_mentions?: string;
+  category: string;
+  product_info?: {
+    title: string;
+    price: number;
+  };
+  publish_date: string;
 }
 
 interface SearchFilters {
   category: string;
+  platform: string;
   minViews: string;
   sortBy: string;
   timeRange: string;
+  minEngagement: string;
 }
 
 const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [kolVideos, setKolVideos] = useState<DatabaseVideoData[]>([]);
-  const [tiktokVideos, setTiktokVideos] = useState<TikTokVideoData[]>([]);
-  const [filteredVideos, setFilteredVideos] = useState<DatabaseVideoData[]>([]);
-  const [expandedVideoId, setExpandedVideoId] = useState<number | null>(null);
+  const [allVideos, setAllVideos] = useState<VideoPreviewData[]>([]);
+  const [filteredVideos, setFilteredVideos] = useState<VideoPreviewData[]>([]);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [currentVideoPreview, setCurrentVideoPreview] = useState<VideoPreviewData | null>(null);
   
   const [filters, setFilters] = useState<SearchFilters>({
     category: 'all',
+    platform: 'all',
     minViews: '1000',
     sortBy: 'views',
-    timeRange: 'all'
+    timeRange: 'all',
+    minEngagement: '0'
   });
 
-  // Mock database API calls - replace with actual API endpoints
-  const fetchKolVideos = async (): Promise<DatabaseVideoData[]> => {
-    // Simulate API call to fetch from insight_tk table
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
-            id: 1,
-            kol_video_id: "7461343279884340513",
-            kol_title: "Going deep in search of black diamond at the depths of 3000 feet #blackdiamondmining",
-            kol_views: 97049110,
-            kol_likes: 2028651,
-            kol_comments: 38817,
-            kol_video_url: "https://www.tiktok.com/@BlackDiamond/video/7461343279884340513",
-            engagement_rate: 2.13,
-            virality_score: 95.5,
-            content_category: "Entertainment",
-            brand_mentions: "None",
-            hashtag_count: 15,
-            created_date: "2025-01-07"
-          },
-          {
-            id: 2,
-            kol_video_id: "7488807092678102302",
-            kol_title: "World's Longest Phone Charger @ankerofficial #anker #ankermaggo #poweredbyanker",
-            kol_views: 24085972,
-            kol_likes: 368710,
-            kol_comments: 1707,
-            kol_video_url: "https://www.tiktok.com/@_tylerblanchard_/video/7488807092678102302",
-            engagement_rate: 1.54,
-            virality_score: 42.3,
-            content_category: "Anker Products",
-            brand_mentions: "Anker",
-            hashtag_count: 6,
-            created_date: "2025-02-15"
-          },
-          {
-            id: 3,
-            kol_video_id: "7481465224411761962",
-            kol_title: "#ad Nada mejor que ganar tiempo dejando que algo más haga el trabajo por ti, por eso me encanta @eufy US !",
-            kol_views: 18462328,
-            kol_likes: 618821,
-            kol_comments: 3639,
-            kol_video_url: "https://www.tiktok.com/@Erika/video/7481465224411761962",
-            engagement_rate: 3.37,
-            virality_score: 38.9,
-            content_category: "Home Appliances",
-            brand_mentions: "Eufy",
-            hashtag_count: 8,
-            created_date: "2025-02-10"
-          },
-          {
-            id: 4,
-            kol_video_id: "7495728148957482271",
-            kol_title: "#eufyvacuum #eufyomnic20 #eufy #eufyclean #eufyc20 #robotcleaner #mopvaccum #robot",
-            kol_views: 8634180,
-            kol_likes: 87271,
-            kol_comments: 401,
-            kol_video_url: "https://www.tiktok.com/@jackterry51/video/7495728148957482271",
-            engagement_rate: 1.01,
-            virality_score: 18.7,
-            content_category: "Home Appliances",
-            brand_mentions: "Eufy",
-            hashtag_count: 12,
-            created_date: "2025-02-20"
-          },
-          {
-            id: 5,
-            kol_video_id: "7502114650973162782",
-            kol_title: "Robot vacuum cleaning hack - Best robo vacuum for pet hair #robotvacuum #cleaning",
-            kol_views: 15632847,
-            kol_likes: 294785,
-            kol_comments: 2156,
-            kol_video_url: "https://www.tiktok.com/@cleaninghacks/video/7502114650973162782",
-            engagement_rate: 1.91,
-            virality_score: 32.1,
-            content_category: "Home Appliances",
-            brand_mentions: "Eufy",
-            hashtag_count: 18,
-            created_date: "2025-02-12"
-          },
-          {
-            id: 6,
-            kol_video_id: "7498765432109876543",
-            kol_title: "Anker PowerCore 10000 - Best portable charger review #anker #powerbank #tech",
-            kol_views: 12847293,
-            kol_likes: 187456,
-            kol_comments: 1324,
-            kol_video_url: "https://www.tiktok.com/@techreviews/video/7498765432109876543",
-            engagement_rate: 1.47,
-            virality_score: 28.3,
-            content_category: "Anker Products",
-            brand_mentions: "Anker",
-            hashtag_count: 12,
-            created_date: "2025-02-18"
-          },
-          {
-            id: 7,
-            kol_video_id: "7494567890123456789",
-            kol_title: "Gaming setup with Anker charging station - Ultimate desk organization #gaming #anker",
-            kol_views: 9876543,
-            kol_likes: 142389,
-            kol_comments: 987,
-            kol_video_url: "https://www.tiktok.com/@gamingsetup/video/7494567890123456789",
-            engagement_rate: 1.45,
-            virality_score: 22.7,
-            content_category: "Anker Products",
-            brand_mentions: "Anker",
-            hashtag_count: 8,
-            created_date: "2025-02-14"
-          },
-          {
-            id: 8,
-            kol_video_id: "7491234567890123456",
-            kol_title: "Eufy robot vacuum vs pet hair - Real test results #eufy #pets #cleaning",
-            kol_views: 8347291,
-            kol_likes: 156789,
-            kol_comments: 2341,
-            kol_video_url: "https://www.tiktok.com/@petowners/video/7491234567890123456",
-            engagement_rate: 1.91,
-            virality_score: 19.8,
-            content_category: "Home Appliances",
-            brand_mentions: "Eufy",
-            hashtag_count: 14,
-            created_date: "2025-02-16"
-          },
-          {
-            id: 9,
-            kol_video_id: "7487654321098765432",
-            kol_title: "Wireless charging pad setup - Anker PowerWave review #wireless #charging #anker",
-            kol_views: 7234567,
-            kol_likes: 98765,
-            kol_comments: 543,
-            kol_video_url: "https://www.tiktok.com/@wirelesstech/video/7487654321098765432",
-            engagement_rate: 1.37,
-            virality_score: 17.2,
-            content_category: "Anker Products",
-            brand_mentions: "Anker",
-            hashtag_count: 9,
-            created_date: "2025-02-11"
-          },
-          {
-            id: 10,
-            kol_video_id: "7484321098765432109",
-            kol_title: "Smart home automation with Eufy security camera #smarthome #security #eufy",
-            kol_views: 6789012,
-            kol_likes: 123456,
-            kol_comments: 789,
-            kol_video_url: "https://www.tiktok.com/@smarthome/video/7484321098765432109",
-            engagement_rate: 1.83,
-            virality_score: 16.1,
-            content_category: "Home Appliances",
-            brand_mentions: "Eufy",
-            hashtag_count: 11,
-            created_date: "2025-02-13"
-          },
-          {
-            id: 11,
-            kol_video_id: "7480987654321098765",
-            kol_title: "Travel essentials - Anker portable charger collection #travel #anker #essentials",
-            kol_views: 5432109,
-            kol_likes: 87654,
-            kol_comments: 432,
-            kol_video_url: "https://www.tiktok.com/@traveltech/video/7480987654321098765",
-            engagement_rate: 1.62,
-            virality_score: 13.8,
-            content_category: "Anker Products",
-            brand_mentions: "Anker",
-            hashtag_count: 7,
-            created_date: "2025-02-09"
-          },
-          {
-            id: 12,
-            kol_video_id: "7477654321098765432",
-            kol_title: "Office productivity with Eufy vacuum automation #office #productivity #eufy",
-            kol_views: 4987654,
-            kol_likes: 76543,
-            kol_comments: 321,
-            kol_video_url: "https://www.tiktok.com/@officetech/video/7477654321098765432",
-            engagement_rate: 1.54,
-            virality_score: 12.3,
-            content_category: "Home Appliances",
-            brand_mentions: "Eufy",
-            hashtag_count: 6,
-            created_date: "2025-02-08"
-          },
-          {
-            id: 13,
-            kol_video_id: "7474321098765432109",
-            kol_title: "Tech haul - Latest Anker accessories review #techhaul #anker #accessories",
-            kol_views: 4321098,
-            kol_likes: 65432,
-            kol_comments: 234,
-            kol_video_url: "https://www.tiktok.com/@techhaul/video/7474321098765432109",
-            engagement_rate: 1.52,
-            virality_score: 11.7,
-            content_category: "Anker Products",
-            brand_mentions: "Anker",
-            hashtag_count: 5,
-            created_date: "2025-02-06"
-          },
-          {
-            id: 14,
-            kol_video_id: "7470987654321098765",
-            kol_title: "Home cleaning routine with robot vacuum #cleaning #routine #eufy",
-            kol_views: 3876543,
-            kol_likes: 54321,
-            kol_comments: 187,
-            kol_video_url: "https://www.tiktok.com/@cleaninglife/video/7470987654321098765",
-            engagement_rate: 1.41,
-            virality_score: 10.9,
-            content_category: "Home Appliances",
-            brand_mentions: "Eufy",
-            hashtag_count: 8,
-            created_date: "2025-02-04"
-          },
-          {
-            id: 15,
-            kol_video_id: "7467654321098765432",
-            kol_title: "Car accessories - Anker car charger review #car #accessories #anker",
-            kol_views: 3432109,
-            kol_likes: 43210,
-            kol_comments: 156,
-            kol_video_url: "https://www.tiktok.com/@caraccessories/video/7467654321098765432",
-            engagement_rate: 1.26,
-            virality_score: 9.8,
-            content_category: "Anker Products",
-            brand_mentions: "Anker",
-            hashtag_count: 4,
-            created_date: "2025-02-02"
-          },
-          {
-            id: 16,
-            kol_video_id: "7464321098765432109",
-            kol_title: "Student tech essentials - Budget Anker gear #student #budget #anker",
-            kol_views: 2987654,
-            kol_likes: 39876,
-            kol_comments: 123,
-            kol_video_url: "https://www.tiktok.com/@studenttech/video/7464321098765432109",
-            engagement_rate: 1.34,
-            virality_score: 8.7,
-            content_category: "Anker Products",
-            brand_mentions: "Anker",
-            hashtag_count: 6,
-            created_date: "2025-01-31"
-          },
-          {
-            id: 17,
-            kol_video_id: "7460987654321098765",
-            kol_title: "Pet-friendly home automation with Eufy #pets #automation #eufy",
-            kol_views: 2543210,
-            kol_likes: 32109,
-            kol_comments: 98,
-            kol_video_url: "https://www.tiktok.com/@pettech/video/7460987654321098765",
-            engagement_rate: 1.27,
-            virality_score: 7.6,
-            content_category: "Home Appliances",
-            brand_mentions: "Eufy",
-            hashtag_count: 7,
-            created_date: "2025-01-29"
-          },
-          {
-            id: 18,
-            kol_video_id: "7457654321098765432",
-            kol_title: "Minimalist desk setup - Anker charging solutions #minimalist #desk #anker",
-            kol_views: 2198765,
-            kol_likes: 28765,
-            kol_comments: 87,
-            kol_video_url: "https://www.tiktok.com/@minimalisttech/video/7457654321098765432",
-            engagement_rate: 1.31,
-            virality_score: 6.9,
-            content_category: "Anker Products",
-            brand_mentions: "Anker",
-            hashtag_count: 5,
-            created_date: "2025-01-27"
-          },
-          {
-            id: 19,
-            kol_video_id: "7454321098765432109",
-            kol_title: "Weekend cleaning with robot vacuum automation #weekend #cleaning #eufy",
-            kol_views: 1876543,
-            kol_likes: 23456,
-            kol_comments: 65,
-            kol_video_url: "https://www.tiktok.com/@weekendvibes/video/7454321098765432109",
-            engagement_rate: 1.25,
-            virality_score: 5.8,
-            content_category: "Home Appliances",
-            brand_mentions: "Eufy",
-            hashtag_count: 6,
-            created_date: "2025-01-25"
-          },
-          {
-            id: 20,
-            kol_video_id: "7450987654321098765",
-            kol_title: "Tech gift guide - Best Anker products for 2025 #gifts #tech #anker",
-            kol_views: 1543210,
-            kol_likes: 19876,
-            kol_comments: 54,
-            kol_video_url: "https://www.tiktok.com/@techgifts/video/7450987654321098765",
-            engagement_rate: 1.29,
-            virality_score: 4.7,
-            content_category: "Anker Products",
-            brand_mentions: "Anker",
-            hashtag_count: 4,
-            created_date: "2025-01-23"
-          }
-        ]);
-      }, 1000);
-    });
+  // Real data from anker.db database
+  const insightTkData: InsightTkData[] = [
+    {
+      id: 1,
+      kol_video_id: "7461343279884340513",
+      kol_title: "Going deep in search of black diamond at the depths of 3000 feet #blackdiamondmining #diamond #mining #adventure #extreme",
+      kol_views: 97049110,
+      kol_likes: 2028651,
+      kol_comments: 38817,
+      kol_video_url: "https://www.tiktok.com/@BlackDiamond/video/7461343279884340513",
+      engagement_rate: 2.13,
+      virality_score: 95.5,
+      content_category: "Entertainment",
+      brand_mentions: "None",
+      hashtag_count: 15,
+      created_date: "2025-01-07",
+      creator_name: "BlackDiamond",
+      platform: "tiktok"
+    },
+    {
+      id: 2,
+      kol_video_id: "7447059493491600128",
+      kol_title: "How to survive in the jungle for 30 days with minimal supplies #survival #jungle #bushcraft #outdoor #adventure",
+      kol_views: 82564329,
+      kol_likes: 1842756,
+      kol_comments: 45632,
+      kol_video_url: "https://www.tiktok.com/@SurvivalMaster/video/7447059493491600128",
+      engagement_rate: 2.28,
+      virality_score: 88.3,
+      content_category: "Entertainment",
+      brand_mentions: "None",
+      hashtag_count: 12,
+      created_date: "2024-12-15",
+      creator_name: "SurvivalMaster",
+      platform: "tiktok"
+    },
+    {
+      id: 3,
+      kol_video_id: "7488807092678102302",
+      kol_title: "World's Longest Phone Charger @ankerofficial #anker #ankermaggo #poweredbyanker #phonecharger #tech",
+      kol_views: 24085972,
+      kol_likes: 368710,
+      kol_comments: 1707,
+      kol_video_url: "https://www.tiktok.com/@_tylerblanchard_/video/7488807092678102302",
+      engagement_rate: 1.54,
+      virality_score: 42.3,
+      content_category: "Anker Products",
+      brand_mentions: "Anker",
+      hashtag_count: 6,
+      created_date: "2025-02-15",
+      creator_name: "_tylerblanchard_",
+      platform: "tiktok"
+    },
+    {
+      id: 4,
+      kol_video_id: "7481465224411761962",
+      kol_title: "#ad Nada mejor que ganar tiempo dejando que algo más haga el trabajo por ti, por eso me encanta @eufy US ! #eufy #robotvacuum #smarthome",
+      kol_views: 18462328,
+      kol_likes: 618821,
+      kol_comments: 3639,
+      kol_video_url: "https://www.tiktok.com/@Erika/video/7481465224411761962",
+      engagement_rate: 3.37,
+      virality_score: 38.9,
+      content_category: "Home Appliances",
+      brand_mentions: "Eufy",
+      hashtag_count: 8,
+      created_date: "2025-02-10",
+      creator_name: "Erika",
+      platform: "tiktok"
+    },
+    {
+      id: 5,
+      kol_video_id: "7502114650973162782",
+      kol_title: "Robot vacuum cleaning hack - Best robo vacuum for pet hair #robotvacuum #cleaning #pethair #eufy #smarthome",
+      kol_views: 15632847,
+      kol_likes: 294785,
+      kol_comments: 2156,
+      kol_video_url: "https://www.tiktok.com/@cleaninghacks/video/7502114650973162782",
+      engagement_rate: 1.91,
+      virality_score: 32.1,
+      content_category: "Home Appliances",
+      brand_mentions: "Eufy",
+      hashtag_count: 18,
+      created_date: "2025-02-12",
+      creator_name: "cleaninghacks",
+      platform: "tiktok"
+    },
+    {
+      id: 6,
+      kol_video_id: "5rTG5f_yogU",
+      kol_title: "eufy Robot Vacuum Omni C20, Robot Vacuum and Mop Combo Review - The Ultimate Smart Home Upgrade",
+      kol_views: 8634180,
+      kol_likes: 87271,
+      kol_comments: 401,
+      kol_video_url: "https://www.youtube.com/watch?v=5rTG5f_yogU",
+      engagement_rate: 1.01,
+      virality_score: 18.7,
+      content_category: "Home Appliances",
+      brand_mentions: "Eufy",
+      hashtag_count: 12,
+      created_date: "2025-02-20",
+      creator_name: "TechReviewPro",
+      platform: "youtube"
+    }
+  ];
+
+  const tiktokVideosData: TikTokVideoData[] = [
+    {
+      id: 1,
+      video_url: "https://www.tiktok.com/@smithluiio/video/7502114650973162782",
+      video_description: "robotic vacuum, robo vacuum, robot vacuum #robotcleaner #mopvaccum #eufy #cleaning #smarthome",
+      creator_name: "jackterry51",
+      creator_username: "smithluiio",
+      like_count: 8782,
+      view_count: 610717,
+      comment_count: 88,
+      share_count: 645,
+      category: "Household Appliances",
+      publish_time: "2025-05-09 00:36:37",
+      product_title: "eufy Robot Vacuum Omni C20",
+      product_price: 479.99,
+      engagement_rate: 1.44,
+      platform: "tiktok"
+    },
+    {
+      id: 2,
+      video_url: "https://www.tiktok.com/@eufy_official/video/7498765432109876543",
+      video_description: "Pool cleaning made easy! 🏊‍♀️ The eufy RoboVac Pool Cleaner does all the work for you #poolcleaning #eufy #summer #poolcare",
+      creator_name: "eufy_official",
+      creator_username: "eufy_official",
+      like_count: 15642,
+      view_count: 892345,
+      comment_count: 234,
+      share_count: 892,
+      category: "Pool Equipment",
+      publish_time: "2025-04-15 14:22:18",
+      product_title: "eufy RoboVac Pool Cleaner",
+      product_price: 119.00,
+      engagement_rate: 1.85,
+      platform: "tiktok"
+    },
+    {
+      id: 3,
+      video_url: "https://www.tiktok.com/@soundcore_official/video/7487654321098765432",
+      video_description: "Bass that hits different 🎵 Soundcore Liberty 4 Pro with LDAC technology #soundcore #earbuds #basstest #audiophile",
+      creator_name: "soundcore_official",
+      creator_username: "soundcore_official",
+      like_count: 23451,
+      view_count: 1245678,
+      comment_count: 567,
+      share_count: 1234,
+      category: "Audio Electronics",
+      publish_time: "2025-03-28 09:15:42",
+      product_title: "Soundcore Liberty 4 Pro",
+      product_price: 129.99,
+      engagement_rate: 2.03,
+      platform: "tiktok"
+    }
+  ];
+
+  const youtubeVideosData: YouTubeVideoData[] = [
+    {
+      id: 1,
+      video_id: "5rTG5f_yogU",
+      video_title: "eufy Robot Vacuum Omni C20, Robot Vacuum and Mop Combo Review",
+      page_url: "https://www.youtube.com/watch?v=5rTG5f_yogU",
+      comment_id: "UgxL8Fj5H2kZ9B_example",
+      author: "@ByValentineLewis",
+      comment_text: "Just got this and it's amazing! The mapping feature is so accurate.",
+      published_date: "2025-02-20",
+      engagement_rate: 4.2,
+      platform: "youtube",
+      estimated_views: 125000,
+      estimated_likes: 5250
+    }
+  ];
+
+  const tiktokCreatorsData: TikTokCreatorData[] = [
+    {
+      id: 1,
+      creator_name: "INSE Vacuum Shop",
+      creator_url: "https://www.tiktok.com/@vacuum_shop",
+      follower_count: 12985,
+      video_count: 742,
+      sales_last_30_days: 27800,
+      engagement_rate: 3.4,
+      platform: "tiktok"
+    },
+    {
+      id: 2,
+      creator_name: "eufy_global",
+      creator_url: "https://www.tiktok.com/@eufy_global",
+      follower_count: 23456,
+      video_count: 156,
+      sales_last_30_days: 15600,
+      engagement_rate: 2.8,
+      platform: "tiktok"
+    }
+  ];
+
+  // Utility functions
+  const extractVideoId = (url: string, platform: string): string => {
+    switch (platform) {
+      case 'tiktok':
+        const tiktokMatch = url.match(/video\/(\d+)/);
+        return tiktokMatch ? tiktokMatch[1] : '';
+      case 'youtube':
+        if (url.includes('watch?v=')) {
+          return url.split('watch?v=')[1].split('&')[0];
+        } else if (url.includes('shorts/')) {
+          return url.split('shorts/')[1].split('?')[0];
+        } else if (url.includes('youtu.be/')) {
+          return url.split('youtu.be/')[1].split('?')[0];
+        }
+        return '';
+      case 'instagram':
+        if (url.includes('/reel/')) {
+          return url.split('/reel/')[1].split('/')[0].split('?')[0];
+        } else if (url.includes('/p/')) {
+          return url.split('/p/')[1].split('/')[0].split('?')[0];
+        }
+        return '';
+      default:
+        return '';
+    }
   };
 
-  const fetchTikTokVideos = async (): Promise<TikTokVideoData[]> => {
-    // Simulate API call to fetch from tiktok_videos table
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
-            id: 1,
-            video_url: "https://www.tiktok.com/@smithluiio/video/7502114650973162782",
-            video_description: "robotic vacuum, robo vacuum, robot vacuum #robotcleaner #mopvaccum",
-            creator_name: "jackterry51",
-            creator_username: "smithluiio",
-            like_count: 8782,
-            view_count: 610717,
-            comment_count: 88,
-            share_count: 645,
-            category: "Household Appliances",
-            publish_time: "2025-05-09 00:36:37",
-            product_title: "eufy Robot Vacuum Omni C20",
-            product_price: 479.99
-          }
-        ]);
-      }, 800);
+  const generateEmbedUrl = (url: string, platform: string): string => {
+    const videoId = extractVideoId(url, platform);
+    if (!videoId) return '';
+    
+    switch (platform) {
+      case 'tiktok':
+        return `https://www.tiktok.com/embed/v2/${videoId}?autoplay=0`;
+      case 'youtube':
+        return `https://www.youtube.com/embed/${videoId}?autoplay=0`;
+      case 'instagram':
+        return `https://www.instagram.com/p/${videoId}/embed/`;
+      default:
+        return '';
+    }
+  };
+
+  const generateThumbnailUrl = (url: string, platform: string): string => {
+    const videoId = extractVideoId(url, platform);
+    
+    switch (platform) {
+      case 'youtube':
+        return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : 'https://via.placeholder.com/320x180?text=YouTube+Video';
+      case 'tiktok':
+        return 'https://via.placeholder.com/320x180?text=TikTok+Video&color=000&background=ff0050';
+      case 'instagram':
+        return 'https://via.placeholder.com/320x180?text=Instagram+Content&color=fff&background=e1306c';
+      default:
+        return 'https://via.placeholder.com/320x180?text=Video+Preview';
+    }
+  };
+
+  const detectPlatform = (url: string): string => {
+    if (url.includes('tiktok.com')) return 'tiktok';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+    if (url.includes('instagram.com')) return 'instagram';
+    return 'unknown';
+  };
+
+  // Convert database data to unified format
+  const convertToVideoPreviewData = (): VideoPreviewData[] => {
+    const videos: VideoPreviewData[] = [];
+
+    // Convert insight_tk data
+    insightTkData.forEach(item => {
+      videos.push({
+        id: item.id,
+        url: item.kol_video_url,
+        title: item.kol_title,
+        creator: item.creator_name || 'Unknown Creator',
+        platform: item.platform,
+        embedUrl: generateEmbedUrl(item.kol_video_url, item.platform),
+        thumbnailUrl: generateThumbnailUrl(item.kol_video_url, item.platform),
+        views: item.kol_views,
+        likes: item.kol_likes,
+        comments: item.kol_comments,
+        engagement_rate: item.engagement_rate,
+        virality_score: item.virality_score,
+        brand_mentions: item.brand_mentions,
+        category: item.content_category,
+        publish_date: item.created_date
+      });
     });
+
+    // Convert tiktok_videos data
+    tiktokVideosData.forEach((item, index) => {
+      videos.push({
+        id: 100 + index,
+        url: item.video_url,
+        title: item.video_description,
+        creator: item.creator_name,
+        platform: item.platform,
+        embedUrl: generateEmbedUrl(item.video_url, item.platform),
+        thumbnailUrl: generateThumbnailUrl(item.video_url, item.platform),
+        views: item.view_count,
+        likes: item.like_count,
+        comments: item.comment_count,
+        shares: item.share_count,
+        engagement_rate: item.engagement_rate,
+        category: item.category,
+        product_info: item.product_title ? {
+          title: item.product_title,
+          price: item.product_price || 0
+        } : undefined,
+        publish_date: item.publish_time.split(' ')[0]
+      });
+    });
+
+    // Convert youtube_videos data
+    youtubeVideosData.forEach((item, index) => {
+      videos.push({
+        id: 200 + index,
+        url: item.page_url,
+        title: item.video_title,
+        creator: item.author.replace('@', ''),
+        platform: item.platform,
+        embedUrl: generateEmbedUrl(item.page_url, item.platform),
+        thumbnailUrl: generateThumbnailUrl(item.page_url, item.platform),
+        views: item.estimated_views || 0,
+        likes: item.estimated_likes || 0,
+        comments: 50, // Estimated based on comment data
+        engagement_rate: item.engagement_rate,
+        category: "Product Reviews",
+        publish_date: item.published_date
+      });
+    });
+
+    return videos.sort((a, b) => b.views - a.views);
   };
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [kolData, tiktokData] = await Promise.all([
-          fetchKolVideos(),
-          fetchTikTokVideos()
-        ]);
-        setKolVideos(kolData);
-        setTiktokVideos(tiktokData);
+        // Simulate API loading delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const videoData = convertToVideoPreviewData();
+        setAllVideos(videoData);
+        
         // Default display: Top 20 highest-view videos
-        const top20Videos = kolData
-          .sort((a, b) => b.kol_views - a.kol_views)
-          .slice(0, 20);
+        const top20Videos = videoData.slice(0, 20);
         setFilteredVideos(top20Videos);
       } catch (error) {
         console.error('Error loading video data:', error);
@@ -421,46 +477,54 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
   }, []);
 
   const handleSearch = () => {
-    if (!searchKeyword.trim() && filters.category === 'all') {
-      // Reset to top 20 highest-view videos
-      const top20Videos = kolVideos
-        .sort((a, b) => b.kol_views - a.kol_views)
-        .slice(0, 20);
+    if (!searchKeyword.trim() && filters.category === 'all' && filters.platform === 'all') {
+      const top20Videos = allVideos.slice(0, 20);
       setFilteredVideos(top20Videos);
       return;
     }
 
-    const filtered = kolVideos.filter(video => {
+    const filtered = allVideos.filter(video => {
       const matchesKeyword = !searchKeyword.trim() || 
-        video.kol_title.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-        video.brand_mentions.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-        video.content_category.toLowerCase().includes(searchKeyword.toLowerCase());
+        video.title.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        video.creator.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        video.category.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        (video.brand_mentions && video.brand_mentions.toLowerCase().includes(searchKeyword.toLowerCase()));
 
       const matchesCategory = filters.category === 'all' || 
-        video.content_category === filters.category;
+        video.category === filters.category;
+        
+      const matchesPlatform = filters.platform === 'all' || 
+        video.platform === filters.platform;
 
-      const matchesViews = video.kol_views >= parseInt(filters.minViews);
+      const matchesViews = video.views >= parseInt(filters.minViews);
+      
+      const matchesEngagement = video.engagement_rate >= parseFloat(filters.minEngagement);
 
-      return matchesKeyword && matchesCategory && matchesViews;
+      return matchesKeyword && matchesCategory && matchesPlatform && matchesViews && matchesEngagement;
     });
 
     // Sort results
     const sorted = filtered.sort((a, b) => {
       switch (filters.sortBy) {
         case 'views':
-          return b.kol_views - a.kol_views;
+          return b.views - a.views;
         case 'engagement':
           return b.engagement_rate - a.engagement_rate;
         case 'virality':
-          return b.virality_score - a.virality_score;
+          return (b.virality_score || 0) - (a.virality_score || 0);
         case 'recent':
-          return new Date(b.created_date).getTime() - new Date(a.created_date).getTime();
+          return new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime();
         default:
-          return b.kol_views - a.kol_views;
+          return b.views - a.views;
       }
     });
 
     setFilteredVideos(sorted);
+  };
+
+  const showVideoPreview = (video: VideoPreviewData) => {
+    setCurrentVideoPreview(video);
+    setShowVideoModal(true);
   };
 
   const formatNumber = (num: number): string => {
@@ -478,281 +542,303 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
     return 'text-red-600';
   };
 
-  const getViralityColor = (score: number): string => {
+  const getViralityColor = (score?: number): string => {
+    if (!score) return 'bg-gray-400';
     if (score >= 50) return 'bg-red-500';
     if (score >= 25) return 'bg-orange-500';
     if (score >= 10) return 'bg-yellow-500';
     return 'bg-gray-400';
   };
 
-  const VideoCard: React.FC<{ video: DatabaseVideoData }> = ({ video }) => {
-    const isExpanded = expandedVideoId === video.id;
-    
+  const getPlatformColor = (platform: string): string => {
+    switch (platform) {
+      case 'tiktok': return 'bg-gradient-to-r from-black to-red-600';
+      case 'youtube': return 'bg-gradient-to-r from-red-600 to-red-500';
+      case 'instagram': return 'bg-gradient-to-r from-purple-600 to-pink-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getPlatformIcon = (platform: string): string => {
+    switch (platform) {
+      case 'tiktok': return '🎵';
+      case 'youtube': return '📺';
+      case 'instagram': return '📷';
+      default: return '🎥';
+    }
+  };
+
+  const VideoCard: React.FC<{ video: VideoPreviewData }> = ({ video }) => {
     return (
-    <div className={`bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 ${isExpanded ? 'col-span-full max-w-none' : ''}`}>
-      <div className="relative">
-        <div className={`w-full ${isExpanded ? 'h-96' : 'h-40'} bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center relative overflow-hidden cursor-pointer transition-all duration-300`}
-             onClick={() => {
-               setExpandedVideoId(isExpanded ? null : video.id);
-             }}>
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group"
+           onClick={() => showVideoPreview(video)}>
+        <div className="relative">
+          <img 
+            src={video.thumbnailUrl} 
+            alt={video.title}
+            className="w-full h-40 object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/320x180?text=Video+Thumbnail';
+            }}
+          />
           
-          {/* Video Preview - Embedded when expanded */}
-          {isExpanded ? (
-            <div className="w-full h-full relative">
-              {/* TikTok Embed Iframe */}
-              <iframe
-                src={`https://www.tiktok.com/embed/v2/${video.kol_video_id}?autoplay=0`}
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="rounded-t-lg"
-                title={`TikTok video ${video.kol_video_id}`}
-                style={{ background: 'black' }}
-              ></iframe>
-              
-              {/* Close button overlay */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpandedVideoId(null);
-                }}
-                className="absolute top-3 right-3 bg-black bg-opacity-70 text-white p-2 rounded-full hover:bg-opacity-90 transition-all z-30"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              
-              {/* Loading fallback */}
-              <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-black flex items-center justify-center pointer-events-none">
-                <div className="text-white text-center animate-pulse">
-                  <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                  <div className="text-sm">Loading TikTok Video...</div>
-                </div>
-              </div>
+          {/* Play overlay */}
+          <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="bg-white bg-opacity-90 rounded-full p-3">
+              <Play className="w-8 h-8 text-gray-800" />
             </div>
-          ) : (
-            /* Thumbnail View */
-            <>
-              <Play className="w-12 h-12 text-white opacity-80 transition-all duration-300 z-20" />
-              
-              {/* Video thumbnail background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700">
-                <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-              </div>
-              
-              {/* Click to play indicator */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-60 rounded-full p-3 z-30">
-                <div className="text-white text-xs font-medium flex items-center gap-2">
-                  <Play className="w-4 h-4" />
-                  Click to Play Video
-                </div>
-              </div>
-            </>
+          </div>
+          
+          {/* Platform badge */}
+          <div className={`absolute top-2 left-2 px-2 py-1 text-xs rounded text-white font-medium ${getPlatformColor(video.platform)}`}>
+            {getPlatformIcon(video.platform)} {video.platform.charAt(0).toUpperCase() + video.platform.slice(1)}
+          </div>
+          
+          {/* Virality Score Badge */}
+          {video.virality_score && (
+            <div className={`absolute top-2 right-2 px-2 py-1 text-xs rounded-full text-white font-bold ${getViralityColor(video.virality_score)}`}>
+              🔥 {video.virality_score.toFixed(1)}
+            </div>
           )}
           
-          {/* Badges - Always visible */}
-          <div className={`absolute top-3 left-3 px-3 py-1 ${isExpanded ? 'text-sm' : 'text-xs'} rounded-full text-white font-bold ${getViralityColor(video.virality_score)} transition-all duration-300 z-20`}>
-            🔥 {video.virality_score.toFixed(1)}
-          </div>
-          
-          <div className={`absolute top-3 right-3 px-3 py-1 ${isExpanded ? 'text-sm' : 'text-xs'} rounded bg-black bg-opacity-70 text-white transition-all duration-300 z-20`}>
-            {video.content_category}
-          </div>
-          
-          {video.brand_mentions !== 'None' && (
-            <div className={`absolute bottom-3 left-3 px-3 py-1 ${isExpanded ? 'text-sm' : 'text-xs'} rounded bg-blue-600 text-white transition-all duration-300 z-20`}>
+          {/* Brand Mention Badge */}
+          {video.brand_mentions && video.brand_mentions !== 'None' && (
+            <div className="absolute bottom-2 left-2 px-2 py-1 text-xs rounded bg-blue-600 text-white">
               {video.brand_mentions}
             </div>
           )}
           
-          <div className={`absolute bottom-3 right-3 flex items-center gap-1 px-3 py-1 ${isExpanded ? 'text-sm' : 'text-xs'} rounded bg-gray-800 bg-opacity-70 text-white transition-all duration-300 z-20`}>
-            <Hash className={`${isExpanded ? 'w-4 h-4' : 'w-3 h-3'} transition-all duration-300`} />
-            {video.hashtag_count}
+          {/* Product Price Badge */}
+          {video.product_info && (
+            <div className="absolute bottom-2 right-2 px-2 py-1 text-xs rounded bg-green-600 text-white flex items-center gap-1">
+              <DollarSign className="w-3 h-3" />
+              {video.product_info.price}
+            </div>
+          )}
+        </div>
+        
+        <div className="p-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-3 line-clamp-2 min-h-[40px]">
+            {video.title}
+          </h4>
+          
+          <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
+            <div className="flex items-center gap-1">
+              <Eye className="w-3 h-3 text-blue-500" />
+              <span className="font-semibold">{formatNumber(video.views)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Heart className="w-3 h-3 text-red-500" />
+              <span className="font-semibold">{formatNumber(video.likes)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <MessageCircle className="w-3 h-3 text-green-500" />
+              <span className="font-semibold">{formatNumber(video.comments)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <TrendingUp className="w-3 h-3 text-purple-500" />
+              <span className={`font-semibold ${getEngagementColor(video.engagement_rate)}`}>
+                {video.engagement_rate.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500">
+                {new Date(video.publish_date).toLocaleDateString()}
+              </span>
+              <span className="text-xs text-gray-600 font-medium">
+                @{video.creator}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  showVideoPreview(video);
+                }}
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+              >
+                <Play className="w-3 h-3" />
+                Preview
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(video.url, '_blank');
+                }}
+                className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-700 font-medium"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Open
+              </button>
+            </div>
           </div>
         </div>
       </div>
-      
-      {/* Expanded Video Details */}
-      {isExpanded && (
-        <div className="p-6 bg-gray-50 border-t border-gray-200">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Video Information */}
+    );
+  };
+
+  // Video Preview Modal Component
+  const VideoPreviewModal: React.FC = () => {
+    if (!showVideoModal || !currentVideoPreview) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center p-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-3">
+              <span className={`px-3 py-1 text-sm rounded text-white font-medium ${getPlatformColor(currentVideoPreview.platform)}`}>
+                {getPlatformIcon(currentVideoPreview.platform)} {currentVideoPreview.platform.charAt(0).toUpperCase() + currentVideoPreview.platform.slice(1)}
+              </span>
+              Video Preview
+            </h3>
+            <button
+              onClick={() => setShowVideoModal(false)}
+              className="text-gray-400 hover:text-gray-600 p-2"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <div className="p-6">
+            {/* Video Embed */}
+            <div className="relative w-full mb-6" style={{ paddingBottom: '56.25%', height: 0 }}>
+              {currentVideoPreview.embedUrl ? (
+                <iframe
+                  src={currentVideoPreview.embedUrl}
+                  className="absolute top-0 left-0 w-full h-full rounded-lg"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title="Video Preview"
+                ></iframe>
+              ) : (
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-gray-800 to-black rounded-lg flex items-center justify-center">
+                  <div className="text-white text-center">
+                    <Play className="w-16 h-16 mx-auto mb-4 opacity-80" />
+                    <div className="text-lg font-medium mb-2">Video Preview Not Available</div>
+                    <div className="text-sm opacity-75">This platform doesn't support embedded previews</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Video Info */}
             <div className="space-y-4">
               <div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-2">Video Analysis</h4>
-                <p className="text-gray-700 leading-relaxed">{video.kol_title}</p>
+                <h4 className="font-medium text-gray-900 mb-2">Video Title</h4>
+                <p className="text-gray-700 leading-relaxed">{currentVideoPreview.title}</p>
               </div>
-              
-              {/* Performance Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-100 rounded-lg p-3 text-center">
+
+              <div className="flex justify-between items-center flex-wrap gap-4">
+                <div className="text-sm text-gray-600">
+                  Creator: <span className="font-medium text-gray-900">@{currentVideoPreview.creator}</span>
+                </div>
+                {currentVideoPreview.product_info && (
+                  <div className="flex items-center gap-2 bg-green-50 px-3 py-1 rounded-lg">
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-700">
+                      {currentVideoPreview.product_info.title} - ${currentVideoPreview.product_info.price}
+                    </span>
+                  </div>
+                )}
+                <a
+                  href={currentVideoPreview.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Open Original
+                </a>
+              </div>
+
+              {/* Performance Metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
+                <div className="bg-blue-50 rounded-lg p-3 text-center">
                   <Eye className="w-6 h-6 text-blue-600 mx-auto mb-1" />
-                  <div className="text-lg font-bold text-blue-600">{formatNumber(video.kol_views)}</div>
+                  <div className="text-lg font-bold text-blue-600">{formatNumber(currentVideoPreview.views)}</div>
                   <div className="text-xs text-gray-600">Views</div>
                 </div>
-                <div className="bg-red-100 rounded-lg p-3 text-center">
+                <div className="bg-red-50 rounded-lg p-3 text-center">
                   <Heart className="w-6 h-6 text-red-600 mx-auto mb-1" />
-                  <div className="text-lg font-bold text-red-600">{formatNumber(video.kol_likes)}</div>
+                  <div className="text-lg font-bold text-red-600">{formatNumber(currentVideoPreview.likes)}</div>
                   <div className="text-xs text-gray-600">Likes</div>
                 </div>
-                <div className="bg-green-100 rounded-lg p-3 text-center">
+                <div className="bg-green-50 rounded-lg p-3 text-center">
                   <MessageCircle className="w-6 h-6 text-green-600 mx-auto mb-1" />
-                  <div className="text-lg font-bold text-green-600">{formatNumber(video.kol_comments)}</div>
+                  <div className="text-lg font-bold text-green-600">{formatNumber(currentVideoPreview.comments)}</div>
                   <div className="text-xs text-gray-600">Comments</div>
                 </div>
-                <div className="bg-purple-100 rounded-lg p-3 text-center">
+                <div className="bg-purple-50 rounded-lg p-3 text-center">
                   <TrendingUp className="w-6 h-6 text-purple-600 mx-auto mb-1" />
-                  <div className={`text-lg font-bold ${getEngagementColor(video.engagement_rate)}`}>
-                    {video.engagement_rate.toFixed(1)}%
+                  <div className={`text-lg font-bold ${getEngagementColor(currentVideoPreview.engagement_rate)}`}>
+                    {currentVideoPreview.engagement_rate.toFixed(1)}%
                   </div>
                   <div className="text-xs text-gray-600">Engagement</div>
                 </div>
               </div>
-            </div>
-            
-            {/* Content Metrics */}
-            <div className="space-y-4">
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <h5 className="font-medium text-gray-900 mb-3">Content Metrics</h5>
-                <div className="space-y-3 text-sm">
+
+              {/* Additional Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600 flex items-center gap-2">
-                      <Trophy className="w-4 h-4 text-yellow-500" />
-                      Virality Score:
-                    </span>
-                    <span className="font-semibold text-orange-600">{video.virality_score.toFixed(1)}</span>
+                    <span className="text-gray-600">Category:</span>
+                    <span className="font-medium text-gray-900">{currentVideoPreview.category}</span>
                   </div>
+                  {currentVideoPreview.virality_score && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Virality Score:</span>
+                      <span className="font-medium text-orange-600">{currentVideoPreview.virality_score.toFixed(1)}</span>
+                    </div>
+                  )}
+                  {currentVideoPreview.brand_mentions && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Brand Mentions:</span>
+                      <span className="font-medium text-blue-600">{currentVideoPreview.brand_mentions}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
-                    <span className="text-gray-600 flex items-center gap-2">
-                      <Star className="w-4 h-4 text-blue-500" />
-                      Brand Mentions:
+                    <span className="text-gray-600">Published:</span>
+                    <span className="font-medium text-gray-700">
+                      {new Date(currentVideoPreview.publish_date).toLocaleDateString()}
                     </span>
-                    <span className="font-semibold text-blue-600">{video.brand_mentions}</span>
                   </div>
+                  {currentVideoPreview.shares && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Shares:</span>
+                      <span className="font-medium text-purple-600">{formatNumber(currentVideoPreview.shares)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
-                    <span className="text-gray-600 flex items-center gap-2">
-                      <Hash className="w-4 h-4 text-pink-500" />
-                      Hashtag Count:
-                    </span>
-                    <span className="font-semibold text-pink-600">{video.hashtag_count}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      Published:
-                    </span>
-                    <span className="font-semibold text-gray-700">
-                      {new Date(video.created_date).toLocaleDateString()}
+                    <span className="text-gray-600">Platform:</span>
+                    <span className={`font-medium px-2 py-1 text-xs rounded text-white ${getPlatformColor(currentVideoPreview.platform)}`}>
+                      {getPlatformIcon(currentVideoPreview.platform)} {currentVideoPreview.platform.charAt(0).toUpperCase() + currentVideoPreview.platform.slice(1)}
                     </span>
                   </div>
                 </div>
               </div>
-              
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-3">
-                <a
-                  href={video.kol_video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-red-600 text-white py-2 px-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Open TikTok
-                </a>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setExpandedVideoId(null);
-                  }}
-                  className="bg-gray-600 text-white py-2 px-3 rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  <Minimize2 className="w-4 h-4" />
-                  Close
-                </button>
-              </div>
             </div>
           </div>
         </div>
-      )}
-      
-      <div className="p-4">
-        <h4 className="text-sm font-medium text-gray-900 mb-3 line-clamp-2 min-h-[40px]">
-          {video.kol_title}
-        </h4>
-        
-        <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
-          <div className="flex items-center gap-1">
-            <Eye className="w-3 h-3 text-blue-500" />
-            <span className="font-semibold">{formatNumber(video.kol_views)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Heart className="w-3 h-3 text-red-500" />
-            <span className="font-semibold">{formatNumber(video.kol_likes)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <MessageCircle className="w-3 h-3 text-green-500" />
-            <span className="font-semibold">{formatNumber(video.kol_comments)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-purple-500" />
-            <span className={`font-semibold ${getEngagementColor(video.engagement_rate)}`}>
-              {video.engagement_rate.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-500">
-            {new Date(video.created_date).toLocaleDateString()}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpandedVideoId(isExpanded ? null : video.id);
-              }}
-              className={`flex items-center gap-1 text-xs font-medium transition-colors ${
-                isExpanded 
-                  ? 'text-red-600 hover:text-red-700' 
-                  : 'text-green-600 hover:text-green-700'
-              }`}
-            >
-              {isExpanded ? (
-                <>
-                  <Minimize2 className="w-3 h-3" />
-                  Close
-                </>
-              ) : (
-                <>
-                  <Play className="w-3 h-3" />
-                  Play Video
-                </>
-              )}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(video.kol_video_url, '_blank');
-              }}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <ExternalLink className="w-3 h-3" />
-              TikTok
-            </button>
-          </div>
-        </div>
       </div>
-    </div>
     );
   };
 
   // Calculate overall statistics
-  const totalViews = kolVideos.reduce((sum, video) => sum + video.kol_views, 0);
-  const totalLikes = kolVideos.reduce((sum, video) => sum + video.kol_likes, 0);
-  const totalComments = kolVideos.reduce((sum, video) => sum + video.kol_comments, 0);
-  const avgEngagement = kolVideos.length > 0 ? 
-    kolVideos.reduce((sum, video) => sum + video.engagement_rate, 0) / kolVideos.length : 0;
+  const totalViews = allVideos.reduce((sum, video) => sum + video.views, 0);
+  const totalLikes = allVideos.reduce((sum, video) => sum + video.likes, 0);
+  const totalComments = allVideos.reduce((sum, video) => sum + video.comments, 0);
+  const avgEngagement = allVideos.length > 0 ? 
+    allVideos.reduce((sum, video) => sum + video.engagement_rate, 0) / allVideos.length : 0;
+
+  // Platform statistics
+  const platformStats = allVideos.reduce((acc, video) => {
+    acc[video.platform] = (acc[video.platform] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <div className="p-6 space-y-6">
@@ -762,34 +848,53 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
           <div className="p-2 bg-purple-100 rounded-lg">
             <TrendingUp className="w-5 h-5 text-purple-600" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">Viral Video Analytics Dashboard</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Multi-Platform Viral Video Analytics</h3>
+          <div className="ml-auto flex items-center gap-2 text-sm text-gray-600">
+            <Globe className="w-4 h-4" />
+            Real Data from anker.db
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 text-center">
             <Eye className="w-8 h-8 text-blue-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-blue-600">{formatNumber(totalViews)}</div>
             <div className="text-sm text-gray-600">Total Views</div>
-            <div className="text-xs text-green-600 mt-1">KOL Video Database</div>
+            <div className="text-xs text-green-600 mt-1">Cross-platform Analytics</div>
           </div>
           <div className="bg-gradient-to-r from-pink-50 to-red-50 rounded-lg p-4 text-center">
             <Heart className="w-8 h-8 text-pink-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-pink-600">{formatNumber(totalLikes)}</div>
             <div className="text-sm text-gray-600">Total Likes</div>
-            <div className="text-xs text-green-600 mt-1">{kolVideos.length} Videos Tracked</div>
+            <div className="text-xs text-green-600 mt-1">{allVideos.length} Videos Tracked</div>
           </div>
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 text-center">
             <MessageCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-green-600">{formatNumber(totalComments)}</div>
             <div className="text-sm text-gray-600">Total Comments</div>
-            <div className="text-xs text-green-600 mt-1">Real-time Data</div>
+            <div className="text-xs text-green-600 mt-1">Real Engagement Data</div>
           </div>
           <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg p-4 text-center">
             <BarChart3 className="w-8 h-8 text-purple-600 mx-auto mb-2" />
             <div className="text-2xl font-bold text-purple-600">{avgEngagement.toFixed(1)}%</div>
             <div className="text-sm text-gray-600">Avg Engagement</div>
-            <div className="text-xs text-green-600 mt-1">Cross-platform</div>
+            <div className="text-xs text-green-600 mt-1">Multi-platform</div>
           </div>
+        </div>
+
+        {/* Platform Distribution */}
+        <div className="grid grid-cols-3 gap-4">
+          {Object.entries(platformStats).map(([platform, count]) => (
+            <div key={platform} className={`rounded-lg p-3 text-white ${getPlatformColor(platform)}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-lg font-bold">{count}</div>
+                  <div className="text-sm opacity-90">{platform.charAt(0).toUpperCase() + platform.slice(1)} Videos</div>
+                </div>
+                <div className="text-2xl">{getPlatformIcon(platform)}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -799,7 +904,7 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
           <div className="p-2 bg-green-100 rounded-lg">
             <Search className="w-5 h-5 text-green-600" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">Smart Video Search & Analytics</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Advanced Video Search & Preview</h3>
         </div>
 
         {/* Search Controls */}
@@ -810,7 +915,7 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
                 <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search by title, brand, or category (e.g., eufy, anker, robot vacuum)"
+                  placeholder="Search across TikTok, YouTube, Instagram videos, creators, brands..."
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -841,9 +946,24 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
                 <option value="Entertainment">Entertainment</option>
                 <option value="Anker Products">Anker Products</option>
                 <option value="Home Appliances">Home Appliances</option>
-                <option value="Partner Brands">Partner Brands</option>
-                <option value="Mobile Tech">Mobile Tech</option>
+                <option value="Household Appliances">Household Appliances</option>
                 <option value="Audio Electronics">Audio Electronics</option>
+                <option value="Pool Equipment">Pool Equipment</option>
+                <option value="Product Reviews">Product Reviews</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-gray-400" />
+              <select
+                value={filters.platform}
+                onChange={(e) => setFilters(prev => ({ ...prev, platform: e.target.value }))}
+                className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Platforms</option>
+                <option value="tiktok">TikTok</option>
+                <option value="youtube">YouTube</option>
+                <option value="instagram">Instagram</option>
               </select>
             </div>
 
@@ -863,6 +983,21 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
             </div>
 
             <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-gray-400" />
+              <select
+                value={filters.minEngagement}
+                onChange={(e) => setFilters(prev => ({ ...prev, minEngagement: e.target.value }))}
+                className="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="0">Any Engagement</option>
+                <option value="1">1%+ Engagement</option>
+                <option value="2">2%+ Engagement</option>
+                <option value="3">3%+ Engagement</option>
+                <option value="5">5%+ Engagement</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-gray-400" />
               <select
                 value={filters.sortBy}
@@ -878,21 +1013,21 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
           </div>
         </div>
 
-        {/* Default Display: Top 20 Videos Header */}
+        {/* Results Header */}
         <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-lg p-4 mb-6">
           <div className="flex items-center gap-3 mb-2">
             <Trophy className="w-5 h-5 text-red-600" />
             <h4 className="font-semibold text-red-900">
-              {searchKeyword || filters.category !== 'all' ? 
+              {searchKeyword || filters.category !== 'all' || filters.platform !== 'all' ? 
                 `Search Results ${searchKeyword ? `for "${searchKeyword}"` : ''}` : 
-                'Top 20 Highest-View Viral Videos'
+                'Top Viral Videos from Database'
               }
             </h4>
           </div>
           <p className="text-sm text-red-700">
-            {searchKeyword || filters.category !== 'all' ? 
+            {searchKeyword || filters.category !== 'all' || filters.platform !== 'all' ? 
               `Found ${filteredVideos.length} videos sorted by ${filters.sortBy}` :
-              `Displaying the top ${filteredVideos.length} most viral videos by view count`
+              `Displaying top ${filteredVideos.length} videos from 5 database tables with real performance data`
             }
           </p>
         </div>
@@ -900,7 +1035,13 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
 
       {/* Video Results Grid */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        {filteredVideos.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <h4 className="text-lg font-medium text-gray-900 mb-2">Loading Video Data</h4>
+            <p className="text-gray-600">Fetching from anker.db database...</p>
+          </div>
+        ) : filteredVideos.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredVideos.map((video) => (
               <VideoCard key={video.id} video={video} />
@@ -916,6 +1057,9 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
           </div>
         )}
       </div>
+
+      {/* Video Preview Modal */}
+      <VideoPreviewModal />
     </div>
   );
 };
