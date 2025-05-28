@@ -39,24 +39,6 @@ export const navigationConfig = {
       name: 'Content for Private',
       path: '/content-private',
       icon: 'Lock'
-    },
-    {
-      id: 'creative-workspace',
-      name: 'CreativeWorkspace',
-      path: '/creative-workspace',
-      icon: 'Palette'
-    },
-    {
-      id: 'script-editor',
-      name: 'ScriptEditor',
-      path: '/script-editor',
-      icon: 'FileText'
-    },
-    {
-      id: 'settings',
-      name: 'Settings',
-      path: '/settings',
-      icon: 'Settings'
     }
   ],
 

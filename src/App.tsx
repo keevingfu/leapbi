@@ -6,9 +6,6 @@ import ContentTest from './components/test/ContentTest';
 import KOLDashboard from './components/kol/KOLDashboard';
 import ContentEmpowermentAds from './components/ads/ContentEmpowermentAds';
 import ContentEmpowermentPrivate from './components/private/ContentEmpowermentPrivate';
-import CreativeWorkspace from './components/creative/CreativeWorkspace';
-import ScriptEditor from './components/script/ScriptEditor';
-import SystemSettings from './components/settings/SystemSettings';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
@@ -27,12 +24,6 @@ const App: React.FC = () => {
         return <ContentEmpowermentAds onNavigate={setCurrentPage} />;
       case 'content-private':
         return <ContentEmpowermentPrivate onNavigate={setCurrentPage} />;
-      case 'creative-workspace':
-        return <CreativeWorkspace onNavigate={setCurrentPage} />;
-      case 'script-editor':
-        return <ScriptEditor onNavigate={setCurrentPage} />;
-      case 'settings':
-        return <SystemSettings onNavigate={setCurrentPage} />;
       default:
         return <OverviewCenter onNavigate={setCurrentPage} />;
     }

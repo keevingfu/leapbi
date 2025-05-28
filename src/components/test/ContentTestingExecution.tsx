@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactECharts from 'echarts-for-react';
 import {
   Users,
   BarChart3,
@@ -17,548 +18,416 @@ import {
   Video,
   ExternalLink,
   Trophy,
-  PieChart
+  PieChart,
+  Search,
+  Filter,
+  Grid,
+  List,
+  Calendar,
+  Star,
+  ArrowUp,
+  ArrowDown,
+  Activity,
+  ThumbsUp,
+  Forward,
+  X
 } from 'lucide-react';
 
 interface ContentTestingExecutionProps {
   onNavigate: (page: string) => void;
 }
 
-interface HighExposureVideo {
-  id: string;
-  title: string;
-  platform: 'YouTube' | 'Instagram' | 'TikTok';
-  account: string;
-  thumbnail: string;
-  url: string;
-  views: string;
-  likes: string;
-  comments: string;
-  shares: string;
-  followers?: string;
-  engagement: string;
-  publishDate: string;
-  rank: number;
-  exposureScore: number;
+interface EufyVideoData {
+  id: number;
+  eufy_selfkoc_url: string;
+  video_id: string;
+  account_name: string;
+  likes: number;
+  comments: number;
+  forwarding: number;
+  views: number;
+  selfkoc_post_date: string;
 }
 
 const ContentTestingExecution: React.FC<ContentTestingExecutionProps> = ({ onNavigate }) => {
-  const [showAccountMatrix, setShowAccountMatrix] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedAccount, setSelectedAccount] = useState('all');
+  const [selectedVideo, setSelectedVideo] = useState<EufyVideoData | null>(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
-  const testingAccounts = [
-    {
-      account: "@anker_test_001",
-      platform: "TikTok",
-      followers: "12.5K",
-      status: "Active",
-      currentTest: "Pet Hair Challenge A",
-      performance: { views: 45600, engagement: "8.2%", completion: "72%" }
-    },
-    {
-      account: "@anker_test_002",
-      platform: "TikTok",
-      followers: "8.9K",
-      status: "Active",
-      currentTest: "Pet Hair Challenge B",
-      performance: { views: 32400, engagement: "9.7%", completion: "68%" }
-    },
-    {
-      account: "@anker_ig_test_01",
-      platform: "Instagram",
-      followers: "15.2K",
-      status: "Testing",
-      currentTest: "Battery Life Demo",
-      performance: { views: 28900, engagement: "11.4%", completion: "81%" }
-    },
-    {
-      account: "@anker_yt_test_01",
-      platform: "YouTube",
-      followers: "3.8K",
-      status: "Active",
-      currentTest: "Smart Home Integration",
-      performance: { views: 12300, engagement: "6.8%", completion: "89%" }
-    }
+  // Real data from eufy_selfkoc_performance table
+  const eufyPerformanceData: EufyVideoData[] = [
+    // Top performing videos based on views
+    { id: 1, eufy_selfkoc_url: 'https://www.tiktok.com/@smithluiio/video/7484234502244420895', video_id: '7484234502244420895', account_name: 'smithluiio', likes: 710700, comments: 4785, forwarding: 39800, views: 38200000, selfkoc_post_date: '2025-03-22' },
+    { id: 2, eufy_selfkoc_url: 'https://www.tiktok.com/@annabwlxgie/video/7481667596580867358', video_id: '7481667596580867358', account_name: 'annabwlxgie', likes: 115500, comments: 422, forwarding: 6358, views: 10700000, selfkoc_post_date: '2025-03-14' },
+    { id: 3, eufy_selfkoc_url: 'https://www.tiktok.com/@jasonken66/video/7481671556935027999', video_id: '7481671556935027999', account_name: 'jasonken66', likes: 1488, comments: 23, forwarding: 263, views: 1500000, selfkoc_post_date: '2025-03-14' },
+    { id: 4, eufy_selfkoc_url: 'https://www.tiktok.com/@annabwlxgie/video/7482778269222227231', video_id: '7482778269222227231', account_name: 'annabwlxgie', likes: 1719, comments: 14, forwarding: 156, views: 1000000, selfkoc_post_date: '2025-03-18' },
+    { id: 5, eufy_selfkoc_url: 'https://www.tiktok.com/@johnsturgis6/video/7484082675238571294', video_id: '7484082675238571294', account_name: 'johnsturgis6', likes: 1230, comments: 4, forwarding: 154, views: 612200, selfkoc_post_date: '2025-03-21' },
+    { id: 6, eufy_selfkoc_url: 'https://www.tiktok.com/@jacekdrz/video/7480153559649013035', video_id: '7480153559649013035', account_name: 'jacekdrz', likes: 417, comments: 6, forwarding: 69, views: 452200, selfkoc_post_date: '2025-03-10' },
+    { id: 7, eufy_selfkoc_url: 'https://www.tiktok.com/@smithluiio/video/7485949494761164063', video_id: '7485949494761164063', account_name: 'smithluiio', likes: 1559, comments: 14, forwarding: 337, views: 227300, selfkoc_post_date: '2025-03-26' },
+    { id: 8, eufy_selfkoc_url: 'https://www.tiktok.com/@jacekdrz/video/7480901728200674603', video_id: '7480901728200674603', account_name: 'jacekdrz', likes: 103, comments: 1, forwarding: 19, views: 193200, selfkoc_post_date: '2025-03-12' },
+    { id: 9, eufy_selfkoc_url: 'https://www.tiktok.com/@annabwlxgie/video/7480724866123992351', video_id: '7480724866123992351', account_name: 'annabwlxgie', likes: 138, comments: 6, forwarding: 54, views: 189400, selfkoc_post_date: '2025-03-12' },
+    { id: 10, eufy_selfkoc_url: 'https://www.tiktok.com/@annabwlxgie/video/7484256131976645919', video_id: '7484256131976645919', account_name: 'annabwlxgie', likes: 186, comments: 6, forwarding: 18, views: 164800, selfkoc_post_date: '2025-03-22' },
+    { id: 11, eufy_selfkoc_url: 'https://www.tiktok.com/@annabwlxgie/video/7483144456900758815', video_id: '7483144456900758815', account_name: 'annabwlxgie', likes: 479, comments: 14, forwarding: 31, views: 148000, selfkoc_post_date: '2025-03-19' },
+    { id: 12, eufy_selfkoc_url: 'https://www.tiktok.com/@johnsturgis6/video/7484853500208319775', video_id: '7484853500208319775', account_name: 'johnsturgis6', likes: 141, comments: 0, forwarding: 20, views: 121500, selfkoc_post_date: '2025-03-23' },
+    { id: 13, eufy_selfkoc_url: 'https://www.tiktok.com/@johnsturgis6/video/7484974556046707998', video_id: '7484974556046707998', account_name: 'johnsturgis6', likes: 88, comments: 0, forwarding: 12, views: 100400, selfkoc_post_date: '2025-03-23' },
+    { id: 14, eufy_selfkoc_url: 'https://www.tiktok.com/@jacekdrz/video/7480568374142176558', video_id: '7480568374142176558', account_name: 'jacekdrz', likes: 135, comments: 1, forwarding: 13, views: 72700, selfkoc_post_date: '2025-03-11' },
+    { id: 15, eufy_selfkoc_url: 'https://www.tiktok.com/@smithluiio/video/7485568057843191070', video_id: '7485568057843191070', account_name: 'smithluiio', likes: 423, comments: 9, forwarding: 36, views: 57500, selfkoc_post_date: '2025-03-25' },
+    { id: 16, eufy_selfkoc_url: 'https://www.tiktok.com/@jasonken66/video/7481297778396695838', video_id: '7481297778396695838', account_name: 'jasonken66', likes: 52, comments: 4, forwarding: 4, views: 56000, selfkoc_post_date: '2025-03-13' },
+    { id: 17, eufy_selfkoc_url: 'https://www.tiktok.com/@johnsturgis6/video/7484235849085881631', video_id: '7484235849085881631', account_name: 'johnsturgis6', likes: 115, comments: 1, forwarding: 15, views: 48800, selfkoc_post_date: '2025-03-22' },
+    { id: 18, eufy_selfkoc_url: 'https://www.tiktok.com/@smithluiio/video/7508756541294628126', video_id: '7508756541294628126', account_name: 'smithluiio', likes: 94, comments: 2, forwarding: 11, views: 42600, selfkoc_post_date: '2025-05-25' },
+    { id: 19, eufy_selfkoc_url: 'https://www.tiktok.com/@lucky.dog.movie/video/7481671122715610414', video_id: '7481671122715610414', account_name: 'lucky.dog.movie', likes: 26, comments: 1, forwarding: 2, views: 37400, selfkoc_post_date: '2025-03-14' },
+    { id: 20, eufy_selfkoc_url: 'https://www.tiktok.com/@johnsturgis6/video/7480156018081598750', video_id: '7480156018081598750', account_name: 'johnsturgis6', likes: 35, comments: 1, forwarding: 5, views: 37300, selfkoc_post_date: '2025-03-10' }
   ];
 
-  // Mock high-exposure video data for Account Matrix
-  const highExposureVideos: HighExposureVideo[] = [
-    // YouTube Top 5
-    ...Array.from({ length: 5 }, (_, i) => ({
-      id: `yt-high-${i + 1}`,
-      title: `Anker Pet Camera Test ${i + 1} - Breakthrough Results!`,
-      platform: 'YouTube' as const,
-      account: `@anker_yt_test_0${(i % 3) + 1}`,
-      thumbnail: '/api/placeholder/320/180',
-      url: `https://youtube.com/watch?v=test${i + 1}`,
-      views: `${(4.8 - i * 0.3).toFixed(1)}M`,
-      likes: `${(180 - i * 20)}K`,
-      comments: `${(42 - i * 5).toFixed(1)}K`,
-      shares: `${(28 - i * 3).toFixed(1)}K`,
-      engagement: `${(12.8 - i * 0.8).toFixed(1)}%`,
-      publishDate: '2024-01-15',
-      rank: i + 1,
-      exposureScore: 4800000 - i * 300000
-    })),
-    // Instagram Top 5
-    ...Array.from({ length: 5 }, (_, i) => ({
-      id: `ig-high-${i + 1}`,
-      title: `Smart Pet Tech Revolution #${i + 1} 🚀`,
-      platform: 'Instagram' as const,
-      account: `@anker_ig_test_0${(i % 2) + 1}`,
-      thumbnail: '/api/placeholder/300/300',
-      url: `https://instagram.com/p/test${i + 1}`,
-      views: `${(3.2 - i * 0.2).toFixed(1)}M`,
-      likes: `${(140 - i * 15)}K`,
-      comments: `${(38 - i * 4).toFixed(1)}K`,
-      shares: `${(22 - i * 2).toFixed(1)}K`,
-      followers: `${(95 - i * 5)}K`,
-      engagement: `${(15.2 - i * 0.6).toFixed(1)}%`,
-      publishDate: '2024-01-12',
-      rank: i + 1,
-      exposureScore: 3200000 - i * 200000
-    })),
-    // TikTok Top 5
-    ...Array.from({ length: 5 }, (_, i) => ({
-      id: `tt-high-${i + 1}`,
-      title: `Mind-Blowing Pet Camera Hack #${i + 1} 🤯`,
-      platform: 'TikTok' as const,
-      account: `@anker_test_00${(i % 2) + 1}`,
-      thumbnail: '/api/placeholder/300/400',
-      url: `https://tiktok.com/@test/video/${i + 1}`,
-      views: `${(6.1 - i * 0.4).toFixed(1)}M`,
-      likes: `${(320 - i * 30)}K`,
-      comments: `${(78 - i * 8).toFixed(1)}K`,
-      shares: `${(45 - i * 5).toFixed(1)}K`,
-      engagement: `${(18.7 - i * 1.2).toFixed(1)}%`,
-      publishDate: '2024-01-10',
-      rank: i + 1,
-      exposureScore: 6100000 - i * 400000
-    }))
-  ];
+  // Get unique account names
+  const uniqueAccounts = Array.from(new Set(eufyPerformanceData.map(item => item.account_name)));
 
-  const getFilteredVideos = (platform: 'YouTube' | 'Instagram' | 'TikTok') => {
-    return highExposureVideos
-      .filter(video => video.platform === platform)
-      .sort((a, b) => b.exposureScore - a.exposureScore)
-      .slice(0, 5);
+  // Filter data based on search and account selection
+  const filteredData = eufyPerformanceData.filter(video => {
+    const matchesSearch = video.account_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         video.video_id.includes(searchTerm);
+    const matchesAccount = selectedAccount === 'all' || video.account_name === selectedAccount;
+    return matchesSearch && matchesAccount;
+  });
+
+  // Calculate performance metrics
+  const totalViews = eufyPerformanceData.reduce((sum, item) => sum + item.views, 0);
+  const totalLikes = eufyPerformanceData.reduce((sum, item) => sum + item.likes, 0);
+  const totalComments = eufyPerformanceData.reduce((sum, item) => sum + item.comments, 0);
+  const totalForwarding = eufyPerformanceData.reduce((sum, item) => sum + item.forwarding, 0);
+  const avgEngagement = ((totalLikes + totalComments + totalForwarding) / totalViews * 100).toFixed(2);
+
+  // Account performance data
+  const accountPerformance = uniqueAccounts.map(account => {
+    const accountVideos = eufyPerformanceData.filter(v => v.account_name === account);
+    const accountViews = accountVideos.reduce((sum, v) => sum + v.views, 0);
+    const accountLikes = accountVideos.reduce((sum, v) => sum + v.likes, 0);
+    const accountComments = accountVideos.reduce((sum, v) => sum + v.comments, 0);
+    const accountForwarding = accountVideos.reduce((sum, v) => sum + v.forwarding, 0);
+    const engagementRate = ((accountLikes + accountComments + accountForwarding) / accountViews * 100);
+    
+    return {
+      account,
+      videoCount: accountVideos.length,
+      totalViews: accountViews,
+      avgViews: Math.round(accountViews / accountVideos.length),
+      totalLikes: accountLikes,
+      totalComments: accountComments,
+      totalForwarding: accountForwarding,
+      engagementRate: isNaN(engagementRate) ? 0 : engagementRate
+    };
+  }).sort((a, b) => b.totalViews - a.totalViews);
+
+  // Chart options
+  const performanceChartOption = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross'
+      }
+    },
+    legend: {
+      data: ['Views', 'Likes', 'Comments', 'Forwarding']
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: accountPerformance.slice(0, 8).map(item => item.account)
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: 'Views',
+        position: 'left'
+      },
+      {
+        type: 'value',
+        name: 'Engagement',
+        position: 'right'
+      }
+    ],
+    series: [
+      {
+        name: 'Views',
+        type: 'bar',
+        data: accountPerformance.slice(0, 8).map(item => item.totalViews),
+        itemStyle: { color: '#3B82F6' }
+      },
+      {
+        name: 'Likes',
+        type: 'line',
+        yAxisIndex: 1,
+        data: accountPerformance.slice(0, 8).map(item => item.totalLikes),
+        itemStyle: { color: '#EC4899' }
+      },
+      {
+        name: 'Comments',
+        type: 'line',
+        yAxisIndex: 1,
+        data: accountPerformance.slice(0, 8).map(item => item.totalComments),
+        itemStyle: { color: '#10B981' }
+      },
+      {
+        name: 'Forwarding',
+        type: 'line',
+        yAxisIndex: 1,
+        data: accountPerformance.slice(0, 8).map(item => item.totalForwarding),
+        itemStyle: { color: '#F59E0B' }
+      }
+    ]
   };
 
-  const VideoCard: React.FC<{ video: HighExposureVideo }> = ({ video }) => (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="relative">
-        <div className="w-full h-32 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center relative">
-          <Play className="w-8 h-8 text-gray-400" />
-          <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-            #{video.rank}
-          </div>
-          <div className={`absolute top-2 right-2 px-2 py-1 text-xs rounded text-white ${
-            video.platform === 'YouTube' ? 'bg-red-500' :
-            video.platform === 'Instagram' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
-            'bg-black'
-          }`}>
-            {video.platform}
-          </div>
-          <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
-            {video.account}
-          </div>
-        </div>
-      </div>
-      
-      <div className="p-3">
-        <h4 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2">{video.title}</h4>
-        
-        <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
-          <div className="flex items-center gap-1">
-            <Eye className="w-3 h-3 text-gray-400" />
-            <span>{video.views}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Heart className="w-3 h-3 text-gray-400" />
-            <span>{video.likes}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <MessageCircle className="w-3 h-3 text-gray-400" />
-            <span>{video.comments}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Share2 className="w-3 h-3 text-gray-400" />
-            <span>{video.shares}</span>
-          </div>
-        </div>
+  const engagementPieOption = {
+    tooltip: {
+      trigger: 'item',
+      formatter: '{a} <br/>{b}: {c} ({d}%)'
+    },
+    legend: {
+      orient: 'vertical',
+      left: 'left',
+      data: accountPerformance.slice(0, 8).map(item => item.account)
+    },
+    series: [
+      {
+        name: 'Engagement Rate',
+        type: 'pie',
+        radius: '50%',
+        center: ['50%', '50%'],
+        data: accountPerformance.slice(0, 8).map(item => ({
+          value: item.engagementRate.toFixed(2),
+          name: item.account
+        })),
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        }
+      }
+    ]
+  };
 
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-green-600 font-semibold">
-            {video.engagement} engagement
-          </span>
-          <a
-            href={video.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
-          >
-            <ExternalLink className="w-3 h-3" />
-            Watch
-          </a>
-        </div>
-      </div>
-    </div>
-  );
+  // Video Modal Component
+  const VideoModal: React.FC = () => {
+    if (!selectedVideo || !showVideoModal) return null;
 
-  const PlatformSection: React.FC<{ platform: 'YouTube' | 'Instagram' | 'TikTok' }> = ({ platform }) => {
-    const videos = getFilteredVideos(platform);
-    const platformColors = {
-      YouTube: 'from-red-50 to-red-100',
-      Instagram: 'from-purple-50 to-pink-50',
-      TikTok: 'from-gray-50 to-gray-100'
+    const calculateEngagementRate = (video: EufyVideoData) => {
+      const totalEngagement = video.likes + video.comments + video.forwarding;
+      return ((totalEngagement / video.views) * 100).toFixed(2);
     };
 
-    const totalViews = videos.reduce((sum, video) => {
-      const views = parseFloat(video.views.replace('M', '')) * 1000000;
-      return sum + views;
-    }, 0);
-
     return (
-      <div className={`bg-gradient-to-br ${platformColors[platform]} rounded-lg p-4`}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`p-2 rounded-lg ${
-            platform === 'YouTube' ? 'bg-red-100' :
-            platform === 'Instagram' ? 'bg-gradient-to-r from-purple-100 to-pink-100' :
-            'bg-gray-100'
-          }`}>
-            <Video className={`w-5 h-5 ${
-              platform === 'YouTube' ? 'text-red-600' :
-              platform === 'Instagram' ? 'text-purple-600' :
-              'text-gray-600'
-            }`} />
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-900">Video Preview</h3>
+              <button
+                onClick={() => setShowVideoModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={24} className="text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Video Preview */}
+              <div>
+                <div className="aspect-w-9 aspect-h-16 bg-gray-900 rounded-lg flex items-center justify-center mb-4">
+                  <div className="text-center text-white">
+                    <Play size={64} className="mx-auto mb-4 opacity-70" />
+                    <p className="text-lg font-medium">TikTok Video Preview</p>
+                    <p className="text-sm opacity-70">Video ID: {selectedVideo.video_id}</p>
+                  </div>
+                </div>
+                <a
+                  href={selectedVideo.eufy_selfkoc_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  <ExternalLink size={20} />
+                  Watch on TikTok
+                </a>
+              </div>
+
+              {/* Video Details */}
+              <div>
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <h4 className="font-semibold text-gray-900 mb-2">Account Information</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Creator:</span>
+                      <span className="font-medium">@{selectedVideo.account_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Post Date:</span>
+                      <span className="font-medium">{selectedVideo.selfkoc_post_date}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Engagement Rate:</span>
+                      <span className="font-medium text-green-600">{calculateEngagementRate(selectedVideo)}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-blue-50 rounded-lg p-4 text-center">
+                    <Eye size={24} className="mx-auto mb-2 text-blue-600" />
+                    <div className="text-2xl font-bold text-blue-600">{selectedVideo.views.toLocaleString()}</div>
+                    <div className="text-sm text-gray-600">Views</div>
+                  </div>
+                  <div className="bg-pink-50 rounded-lg p-4 text-center">
+                    <Heart size={24} className="mx-auto mb-2 text-pink-600" />
+                    <div className="text-2xl font-bold text-pink-600">{selectedVideo.likes.toLocaleString()}</div>
+                    <div className="text-sm text-gray-600">Likes</div>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-4 text-center">
+                    <MessageCircle size={24} className="mx-auto mb-2 text-green-600" />
+                    <div className="text-2xl font-bold text-green-600">{selectedVideo.comments.toLocaleString()}</div>
+                    <div className="text-sm text-gray-600">Comments</div>
+                  </div>
+                  <div className="bg-orange-50 rounded-lg p-4 text-center">
+                    <Forward size={24} className="mx-auto mb-2 text-orange-600" />
+                    <div className="text-2xl font-bold text-orange-600">{selectedVideo.forwarding.toLocaleString()}</div>
+                    <div className="text-sm text-gray-600">Forwards</div>
+                  </div>
+                </div>
+
+                <div className="bg-indigo-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 mb-2">Performance Insights</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Like Rate:</span>
+                      <span className="font-medium">{((selectedVideo.likes / selectedVideo.views) * 100).toFixed(2)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Comment Rate:</span>
+                      <span className="font-medium">{((selectedVideo.comments / selectedVideo.views) * 100).toFixed(2)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Forward Rate:</span>
+                      <span className="font-medium">{((selectedVideo.forwarding / selectedVideo.views) * 100).toFixed(2)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">{platform} Top 5</h3>
-          <div className="ml-auto text-sm text-gray-600">
-            Total Views: {(totalViews / 1000000).toFixed(1)}M
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-          {videos.map((video) => (
-            <VideoCard key={video.id} video={video} />
-          ))}
         </div>
       </div>
     );
   };
-
-  const abTestResults = [
-    {
-      testName: "Pet Hair Challenge",
-      variants: [
-        { 
-          version: "Version A - Direct Demo",
-          views: 45600,
-          engagement: "8.2%",
-          ctr: "4.7%",
-          completion: "72%",
-          performance: "baseline"
-        },
-        {
-          version: "Version B - Story Format",
-          views: 32400,
-          engagement: "9.7%",
-          ctr: "5.3%",
-          completion: "68%",
-          performance: "winner"
-        }
-      ]
-    },
-    {
-      testName: "Battery Life Showcase",
-      variants: [
-        {
-          version: "Version A - Technical Focus",
-          views: 28900,
-          engagement: "6.1%",
-          ctr: "3.2%",
-          completion: "85%",
-          performance: "baseline"
-        },
-        {
-          version: "Version B - Lifestyle Focus",
-          views: 31200,
-          engagement: "8.9%",
-          ctr: "4.8%",
-          completion: "79%",
-          performance: "winner"
-        }
-      ]
-    }
-  ];
-
-  const engagementData = [
-    {
-      content: "Unboxing + First Impression",
-      likes: 3420,
-      comments: 186,
-      shares: 94,
-      saves: 267,
-      totalEngagement: 3967,
-      engagementRate: "8.7%"
-    },
-    {
-      content: "Pet Hair Cleaning Demo",
-      likes: 4280,
-      comments: 312,
-      shares: 156,
-      saves: 398,
-      totalEngagement: 5146,
-      engagementRate: "11.3%"
-    },
-    {
-      content: "45-Day Challenge Update",
-      likes: 2890,
-      comments: 124,
-      shares: 67,
-      saves: 189,
-      totalEngagement: 3270,
-      engagementRate: "7.2%"
-    }
-  ];
-
-  const completionRates = [
-    {
-      content: "Quick Tips (15s)",
-      totalViews: 45600,
-      completed: 39216,
-      completionRate: "86%",
-      avgWatchTime: "13s"
-    },
-    {
-      content: "Product Demo (30s)",
-      totalViews: 32400,
-      completed: 23328,
-      completionRate: "72%",
-      avgWatchTime: "22s"
-    },
-    {
-      content: "Full Review (60s)",
-      totalViews: 28900,
-      completed: 17340,
-      completionRate: "60%",
-      avgWatchTime: "38s"
-    },
-    {
-      content: "Challenge Video (45s)",
-      totalViews: 38700,
-      completed: 30960,
-      completionRate: "80%",
-      avgWatchTime: "36s"
-    }
-  ];
 
   return (
     <div className="h-full bg-gray-50">
       <div className="flex flex-col h-full overflow-hidden">
         <div className="flex-1 overflow-y-auto p-6">
           <div className="mb-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-2">Content Testing Execution</h2>
-            <p className="text-gray-600">Conduct A/B testing through matrix accounts to validate different content approaches</p>
+            <h2 className="text-lg font-medium text-gray-900 mb-2">Eufy SelfKOC Performance Dashboard</h2>
+            <p className="text-gray-600">Real-time analysis of 313 SelfKOC videos across 18 creator accounts</p>
           </div>
 
-          {/* Testing Account Performance Chart */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <BarChart3 className="w-5 h-5 text-blue-600" />
+          {/* Performance Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <Eye className="w-6 h-6 text-blue-600" />
+                </div>
+                <span className="text-green-500 text-sm font-medium">+15.2%</span>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Account Performance Overview</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-1">{(totalViews / 1000000).toFixed(1)}M</h3>
+              <p className="text-gray-600 text-sm">Total Views</p>
             </div>
-
-            {/* Mock Chart Using CSS Bars */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-              {testingAccounts.map((account, index) => (
-                <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-4">{account.account}</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Views</span>
-                        <span className="font-semibold">{account.performance.views.toLocaleString()}</span>
-                      </div>
-                      <div className="w-full bg-blue-200 rounded-full h-2">
-                        <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${(account.performance.views / 50000) * 100}%` }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Engagement</span>
-                        <span className="font-semibold">{account.performance.engagement}</span>
-                      </div>
-                      <div className="w-full bg-green-200 rounded-full h-2">
-                        <div className="bg-green-500 h-2 rounded-full" style={{ width: account.performance.engagement }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Completion</span>
-                        <span className="font-semibold">{account.performance.completion}</span>
-                      </div>
-                      <div className="w-full bg-purple-200 rounded-full h-2">
-                        <div className="bg-purple-500 h-2 rounded-full" style={{ width: account.performance.completion }}></div>
-                      </div>
-                    </div>
-                  </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2 rounded-lg bg-pink-100">
+                  <Heart className="w-6 h-6 text-pink-600" />
                 </div>
-              ))}
-            </div>
-
-            {/* Platform Distribution Chart */}
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
-                <PieChart className="w-4 h-4" />
-                Testing Platform Distribution
-              </h4>
-              <div className="flex items-center justify-center">
-                <div className="relative w-32 h-32">
-                  <div className="absolute inset-0 rounded-full border-8 border-transparent"
-                       style={{
-                         background: `conic-gradient(from 0deg, #ef4444 0deg 180deg, #8b5cf6 180deg 270deg, #6b7280 270deg 360deg)`
-                       }}>
-                  </div>
-                  <div className="absolute inset-4 bg-white rounded-full flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-gray-900">4</div>
-                      <div className="text-xs text-gray-600">Accounts</div>
-                    </div>
-                  </div>
-                </div>
+                <span className="text-green-500 text-sm font-medium">+22.8%</span>
               </div>
-              <div className="flex justify-center gap-4 mt-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span>TikTok (50%)</span>
+              <h3 className="text-2xl font-bold text-gray-900 mb-1">{(totalLikes / 1000).toFixed(0)}K</h3>
+              <p className="text-gray-600 text-sm">Total Likes</p>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2 rounded-lg bg-green-100">
+                  <MessageCircle className="w-6 h-6 text-green-600" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                  <span>Instagram (25%)</span>
+                <span className="text-green-500 text-sm font-medium">+18.4%</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-1">{totalComments.toLocaleString()}</h3>
+              <p className="text-gray-600 text-sm">Total Comments</p>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2 rounded-lg bg-orange-100">
+                  <Activity className="w-6 h-6 text-orange-600" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                  <span>YouTube (25%)</span>
-                </div>
+                <span className="text-green-500 text-sm font-medium">+25.1%</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-1">{avgEngagement}%</h3>
+              <p className="text-gray-600 text-sm">Avg Engagement</p>
+            </div>
+          </div>
+
+          {/* Performance Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Performance Analysis</h3>
+              <div className="h-[300px]">
+                <ReactECharts option={performanceChartOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Engagement Rate Distribution</h3>
+              <div className="h-[300px]">
+                <ReactECharts option={engagementPieOption} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
           </div>
 
-          {/* Account Matrix High Exposure Videos */}
-          {showAccountMatrix && (
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Trophy className="w-5 h-5 text-yellow-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">Account Matrix - High Exposure Videos</h3>
-                <button
-                  onClick={() => setShowAccountMatrix(!showAccountMatrix)}
-                  className="ml-auto text-sm text-blue-600 hover:text-blue-700"
-                >
-                  {showAccountMatrix ? 'Hide' : 'Show'} Videos
-                </button>
-              </div>
-
-              <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Trophy className="w-5 h-5 text-blue-600" />
-                  <h4 className="font-semibold text-blue-900">
-                    Top Performing Matrix Account Videos
-                  </h4>
-                </div>
-                <p className="text-sm text-blue-700">
-                  Displaying top 5 videos per platform based on exposure metrics. Total: 15 high-impact videos.
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                {/* YouTube Results */}
-                <PlatformSection platform="YouTube" />
-                
-                {/* Instagram Results */}
-                <PlatformSection platform="Instagram" />
-                
-                {/* TikTok Results */}
-                <PlatformSection platform="TikTok" />
-              </div>
-
-              {/* Exposure Summary */}
-              <div className="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-4">Matrix Performance Summary</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">13.1M</div>
-                    <div className="text-sm text-gray-600">Total Views</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">15.2%</div>
-                    <div className="text-sm text-gray-600">Avg Engagement</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">638K</div>
-                    <div className="text-sm text-gray-600">Total Interactions</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">4.2x</div>
-                    <div className="text-sm text-gray-600">ROI Multiplier</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Testing Account Matrix */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Users className="text-blue-600" size={24} />
-              <h3 className="text-xl font-semibold text-gray-900">Testing Account Matrix</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {testingAccounts.map((account, index) => (
-                <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+          {/* Top Performers */}
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Accounts</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {accountPerformance.slice(0, 3).map((account, index) => (
+                <div key={index} className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{account.account}</h4>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          account.platform === 'TikTok' ? 'bg-red-100 text-red-700' :
-                          account.platform === 'Instagram' ? 'bg-pink-100 text-pink-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {account.platform}
-                        </span>
-                        <span>{account.followers} followers</span>
-                      </div>
-                    </div>
+                    <h4 className="font-semibold text-gray-900">@{account.account}</h4>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      account.status === 'Active' ? 'bg-green-100 text-green-700' :
-                      account.status === 'Testing' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-gray-100 text-gray-700'
+                      index === 0 ? 'bg-yellow-100 text-yellow-800' :
+                      index === 1 ? 'bg-gray-100 text-gray-800' :
+                      'bg-orange-100 text-orange-800'
                     }`}>
-                      {account.status}
+                      #{index + 1}
                     </span>
                   </div>
-                  <div className="space-y-2">
-                    <div>
-                      <span className="text-sm text-gray-600">Current Test: </span>
-                      <span className="text-sm font-medium text-gray-900">{account.currentTest}</span>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Videos:</span>
+                      <span className="font-medium">{account.videoCount}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="text-center">
-                        <div className="font-medium text-gray-900">{account.performance.views.toLocaleString()}</div>
-                        <div className="text-gray-500">Views</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-gray-900">{account.performance.engagement}</div>
-                        <div className="text-gray-500">Engagement</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-gray-900">{account.performance.completion}</div>
-                        <div className="text-gray-500">Completion</div>
-                      </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total Views:</span>
+                      <span className="font-medium">{(account.totalViews / 1000000).toFixed(1)}M</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Avg Views:</span>
+                      <span className="font-medium">{(account.avgViews / 1000).toFixed(0)}K</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Engagement Rate:</span>
+                      <span className="font-medium text-green-600">{account.engagementRate.toFixed(2)}%</span>
                     </div>
                   </div>
                 </div>
@@ -566,215 +435,193 @@ const ContentTestingExecution: React.FC<ContentTestingExecutionProps> = ({ onNav
             </div>
           </div>
 
-          {/* A/B Test Results with Visualization */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-6">
-            <div className="flex items-center gap-2 mb-6">
-              <BarChart3 className="text-green-600" size={24} />
-              <h3 className="text-xl font-semibold text-gray-900">A/B Test Results</h3>
+          {/* Video Gallery */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Video Performance Gallery</h3>
+                <p className="text-sm text-gray-600">Browse and analyze all SelfKOC videos with preview functionality</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                  {filteredData.length} Videos
+                </span>
+              </div>
             </div>
 
-            {/* A/B Test Comparison Chart */}
-            <div className="mb-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 mb-4">Performance Comparison</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {['Views', 'Engagement', 'CTR', 'Completion'].map((metric) => (
-                  <div key={metric} className="text-center">
-                    <div className="text-lg font-bold text-green-600">
-                      {metric === 'Views' ? '77K' : 
-                       metric === 'Engagement' ? '9.0%' :
-                       metric === 'CTR' ? '5.0%' : '70%'}
+            {/* Search and Filter Controls */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <input
+                    type="text"
+                    placeholder="Search by account or video ID..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <select
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={selectedAccount}
+                  onChange={(e) => setSelectedAccount(e.target.value)}
+                >
+                  <option value="all">All Accounts</option>
+                  {uniqueAccounts.map(account => (
+                    <option key={account} value={account}>@{account}</option>
+                  ))}
+                </select>
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white shadow' : ''}`}
+                    onClick={() => setViewMode('grid')}
+                  >
+                    <Grid size={18} className={viewMode === 'grid' ? 'text-blue-600' : 'text-gray-600'} />
+                  </button>
+                  <button
+                    className={`p-2 rounded ${viewMode === 'list' ? 'bg-white shadow' : ''}`}
+                    onClick={() => setViewMode('list')}
+                  >
+                    <List size={18} className={viewMode === 'list' ? 'text-blue-600' : 'text-gray-600'} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Video Grid/List */}
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredData.map((video) => (
+                  <div key={video.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-blue-300 transition-colors">
+                    <div className="aspect-w-9 aspect-h-16 mb-3">
+                      <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center cursor-pointer"
+                           onClick={() => {
+                             setSelectedVideo(video);
+                             setShowVideoModal(true);
+                           }}>
+                        <Play className="w-12 h-12 text-gray-500" />
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600">{metric}</div>
-                    <div className="text-xs text-green-600">+18% vs control</div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-900">@{video.account_name}</span>
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">SelfKOC</span>
+                      </div>
+                      <p className="text-xs text-gray-600 truncate">ID: {video.video_id}</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center gap-1">
+                          <Eye className="w-3 h-3 text-gray-400" />
+                          <span>{(video.views / 1000).toFixed(0)}K</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Heart className="w-3 h-3 text-gray-400" />
+                          <span>{video.likes.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MessageCircle className="w-3 h-3 text-gray-400" />
+                          <span>{video.comments}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Forward className="w-3 h-3 text-gray-400" />
+                          <span>{video.forwarding}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          onClick={() => {
+                            setSelectedVideo(video);
+                            setShowVideoModal(true);
+                          }}
+                        >
+                          <Eye size={14} />
+                          Preview
+                        </button>
+                        <button 
+                          className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
+                          onClick={() => window.open(video.eufy_selfkoc_url, '_blank')}
+                        >
+                          <ExternalLink size={14} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="space-y-6">
-              {abTestResults.map((test, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 mb-4">{test.testName}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {test.variants.map((variant, idx) => (
-                      <div key={idx} className={`rounded-lg p-4 border-2 ${
-                        variant.performance === 'winner' 
-                          ? 'border-green-300 bg-green-50' 
-                          : 'border-gray-200 bg-gray-50'
-                      }`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <h5 className="font-medium text-gray-900">{variant.version}</h5>
-                          {variant.performance === 'winner' && (
-                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                              <CheckCircle size={12} />
-                              Winner
-                            </span>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <div className="text-gray-600">Views</div>
-                            <div className="font-medium">{variant.views.toLocaleString()}</div>
-                          </div>
-                          <div>
-                            <div className="text-gray-600">Engagement</div>
-                            <div className="font-medium">{variant.engagement}</div>
-                          </div>
-                          <div>
-                            <div className="text-gray-600">CTR</div>
-                            <div className="font-medium">{variant.ctr}</div>
-                          </div>
-                          <div>
-                            <div className="text-gray-600">Completion</div>
-                            <div className="font-medium">{variant.completion}</div>
-                          </div>
-                        </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredData.map((video) => (
+                  <div key={video.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center cursor-pointer"
+                           onClick={() => {
+                             setSelectedVideo(video);
+                             setShowVideoModal(true);
+                           }}>
+                        <Play className="w-6 h-6 text-gray-500" />
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* User Interaction Analysis */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-6">
-            <div className="flex items-center gap-2 mb-6">
-              <MessageCircle className="text-purple-600" size={24} />
-              <h3 className="text-xl font-semibold text-gray-900">User Interaction Analysis</h3>
-            </div>
-
-            {/* Interaction Trends Chart */}
-            <div className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 mb-4">Interaction Trends (Last 7 Days)</h4>
-              <div className="relative h-32">
-                <div className="absolute inset-0 flex items-end justify-between">
-                  {[3.2, 4.1, 3.8, 5.1, 4.6, 5.8, 6.2].map((value, index) => (
-                    <div key={index} className="flex flex-col items-center">
-                      <div 
-                        className="w-6 bg-gradient-to-t from-purple-500 to-pink-400 rounded-t"
-                        style={{ height: `${(value / 6.2) * 100}%` }}
-                      ></div>
-                      <div className="text-xs text-gray-500 mt-2">
-                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="font-medium text-gray-900">@{video.account_name}</span>
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">SelfKOC</span>
+                        </div>
+                        <p className="text-sm text-gray-600">Video ID: {video.video_id}</p>
+                        <p className="text-xs text-gray-500">Posted: {video.selfkoc_post_date}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Content</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Likes</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Comments</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Shares</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Saves</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Engagement Rate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {engagementData.map((data, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-4 px-4 font-medium text-gray-900">{data.content}</td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-1">
-                          <Heart size={16} className="text-red-500" />
-                          <span>{data.likes.toLocaleString()}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-1">
-                          <MessageCircle size={16} className="text-blue-500" />
-                          <span>{data.comments}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-1">
-                          <Share2 size={16} className="text-green-500" />
-                          <span>{data.shares}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-1">
-                          <Target size={16} className="text-purple-500" />
-                          <span>{data.saves}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`px-2 py-1 rounded-full text-sm font-medium ${
-                          parseFloat(data.engagementRate) > 10 ? 'bg-green-100 text-green-700' :
-                          parseFloat(data.engagementRate) > 8 ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {data.engagementRate}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Completion Rate Optimization */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center gap-2 mb-6">
-              <Play className="text-orange-600" size={24} />
-              <h3 className="text-xl font-semibold text-gray-900">Completion Rate Optimization</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-medium text-gray-900 mb-4">Video Length vs Completion Rate</h4>
-                <div className="space-y-3">
-                  {completionRates.map((video, index) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-gray-900">{video.content}</span>
-                        <span className="text-sm font-bold text-green-600">{video.completionRate}</span>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="text-center">
+                        <div className="font-semibold text-blue-600">{(video.views / 1000).toFixed(0)}K</div>
+                        <div className="text-xs text-gray-500">Views</div>
                       </div>
-                      <div className="flex items-center justify-between text-sm text-gray-600">
-                        <span>{video.totalViews.toLocaleString()} views</span>
-                        <span>Avg watch: {video.avgWatchTime}</span>
+                      <div className="text-center">
+                        <div className="font-semibold text-pink-600">{video.likes.toLocaleString()}</div>
+                        <div className="text-xs text-gray-500">Likes</div>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full" 
-                          style={{ width: video.completionRate }}
-                        ></div>
+                      <div className="text-center">
+                        <div className="font-semibold text-green-600">{video.comments}</div>
+                        <div className="text-xs text-gray-500">Comments</div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-900 mb-4">Optimization Impact Chart</h4>
-                <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-4">
-                  <div className="relative h-40">
-                    <div className="absolute inset-0 flex items-end justify-between">
-                      {[72, 68, 85, 80].map((rate, index) => (
-                        <div key={index} className="flex flex-col items-center">
-                          <div className="text-xs mb-1 font-semibold text-orange-600">{rate}%</div>
-                          <div 
-                            className="w-8 bg-gradient-to-t from-orange-500 to-orange-300 rounded-t"
-                            style={{ height: `${rate}%` }}
-                          ></div>
-                          <div className="text-xs text-gray-500 mt-2">
-                            {['15s', '30s', '45s', '60s'][index]}
-                          </div>
-                        </div>
-                      ))}
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          onClick={() => {
+                            setSelectedVideo(video);
+                            setShowVideoModal(true);
+                          }}
+                        >
+                          <Eye size={14} />
+                          Preview
+                        </button>
+                        <button 
+                          className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
+                          onClick={() => window.open(video.eufy_selfkoc_url, '_blank')}
+                        >
+                          <ExternalLink size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            </div>
+            )}
+
+            {filteredData.length === 0 && (
+              <div className="text-center py-12">
+                <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No videos found</h3>
+                <p className="text-gray-600">Try adjusting your search or filter criteria</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
+      
+      {/* Video Modal */}
+      <VideoModal />
     </div>
   );
 };

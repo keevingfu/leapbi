@@ -6,9 +6,6 @@ import {
   Users, 
   Megaphone, 
   Lock, 
-  Palette, 
-  FileText, 
-  Settings,
   ChevronRight,
   Home
 } from 'lucide-react';
@@ -26,9 +23,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
     { id: 'content-kol', name: 'Content for KOL', icon: Users },
     { id: 'content-ads', name: 'Content for Ads', icon: Megaphone },
     { id: 'content-private', name: 'Content for Private', icon: Lock },
-    { id: 'creative-workspace', name: 'CreativeWorkspace', icon: Palette },
-    { id: 'script-editor', name: 'ScriptEditor', icon: FileText },
-    { id: 'settings', name: 'Settings', icon: Settings },
   ];
 
   return (
