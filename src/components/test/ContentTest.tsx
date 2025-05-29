@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 import {
   Lightbulb,
@@ -14,7 +14,8 @@ import {
   Filter,
   Grid,
   List,
-  Eye
+  Eye,
+  X
 } from 'lucide-react';
 
 import ContentIdeationPlanning from './ContentIdeationPlanning';
@@ -31,6 +32,8 @@ const ContentTest: React.FC<ContentTestProps> = ({ onNavigate }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAccount, setSelectedAccount] = useState('all');
+  const [selectedVideo, setSelectedVideo] = useState<any>(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   // E28 Product KOL Collaboration Data
   const e28CollaborationData = [
@@ -305,6 +308,81 @@ const ContentTest: React.FC<ContentTestProps> = ({ onNavigate }) => {
 
   const activeTabData = tabs.find(tab => tab.id === activeTab);
 
+  // Extract video ID from TikTok URL
+  const extractVideoId = (url: string) => {
+    const match = url.match(/\/video\/(\d+)/);
+    return match ? match[1] : '';
+  };
+
+  // Generate TikTok embed URL
+  const getTikTokEmbedUrl = (videoId: string) => {
+    return `https://www.tiktok.com/embed/v2/${videoId}`;
+  };
+
+  // Video Preview Modal Component
+  const VideoPreviewModal = ({ video, onClose }: { video: any; onClose: () => void }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h3 className="text-lg font-semibold text-gray-900">TikTok Video Preview</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={24} />
+          </button>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Video Information</h4>
+              <div className="space-y-2 text-sm">
+                <div><span className="font-medium">Creator:</span> {video.account}</div>
+                <div><span className="font-medium">Product:</span> {video.product}</div>
+                <div><span className="font-medium">Video ID:</span> {video.videoId}</div>
+                <div><span className="font-medium">Platform:</span> TikTok</div>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Quick Actions</h4>
+              <div className="space-y-3">
+                <a
+                  href={video.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors w-full justify-center"
+                >
+                  <ExternalLink size={16} />
+                  <span>Open in TikTok</span>
+                </a>
+                <button
+                  onClick={() => navigator.clipboard.writeText(video.url)}
+                  className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors w-full justify-center"
+                >
+                  <Video size={16} />
+                  <span>Copy Video URL</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6">
+            <h4 className="font-semibold text-gray-900 mb-3">Video Preview</h4>
+            <div className="aspect-w-9 aspect-h-16 bg-gray-100 rounded-lg overflow-hidden">
+              <iframe
+                src={getTikTokEmbedUrl(video.videoId)}
+                className="w-full h-96 border-0"
+                allow="encrypted-media"
+                allowFullScreen
+                title={`TikTok video by ${video.account}`}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              If the video doesn't load, click "Open in TikTok" to view it directly.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   // E28 Collaboration Summary Component
   const E28CollaborationSummary = () => (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -474,10 +552,26 @@ const ContentTest: React.FC<ContentTestProps> = ({ onNavigate }) => {
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredVideos.map((video, index) => (
-            <div key={video.videoId} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-blue-300 transition-colors">
+            <div key={video.videoId} className="bg-white rounded-lg p-4 border border-gray-200 hover:border-blue-300 transition-colors shadow-sm">
               <div className="aspect-w-9 aspect-h-16 mb-3">
-                <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center">
-                  <Play className="w-12 h-12 text-gray-500" />
+                <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden relative group cursor-pointer"
+                     onClick={() => {
+                       setSelectedVideo(video);
+                       setShowVideoModal(true);
+                     }}>
+                  <iframe
+                    src={getTikTokEmbedUrl(video.videoId)}
+                    className="w-full h-full border-0 pointer-events-none"
+                    allow="encrypted-media"
+                    title={`TikTok preview by ${video.account}`}
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <div className="bg-white bg-opacity-90 rounded-full p-3">
+                        <Play className="w-6 h-6 text-gray-800" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
@@ -494,7 +588,13 @@ const ContentTest: React.FC<ContentTestProps> = ({ onNavigate }) => {
                     <ExternalLink size={14} />
                     View on TikTok
                   </button>
-                  <button className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors">
+                  <button 
+                    className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
+                    onClick={() => {
+                      setSelectedVideo(video);
+                      setShowVideoModal(true);
+                    }}
+                  >
                     <Eye size={14} />
                   </button>
                 </div>
@@ -505,10 +605,24 @@ const ContentTest: React.FC<ContentTestProps> = ({ onNavigate }) => {
       ) : (
         <div className="space-y-3">
           {filteredVideos.map((video, index) => (
-            <div key={video.videoId} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors">
+            <div key={video.videoId} className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-300 transition-colors shadow-sm">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center">
-                  <Play className="w-6 h-6 text-gray-500" />
+                <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden relative group cursor-pointer"
+                     onClick={() => {
+                       setSelectedVideo(video);
+                       setShowVideoModal(true);
+                     }}>
+                  <iframe
+                    src={getTikTokEmbedUrl(video.videoId)}
+                    className="w-full h-full border-0 pointer-events-none scale-150"
+                    allow="encrypted-media"
+                    title={`TikTok preview by ${video.account}`}
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <Play className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <div className="flex items-center gap-3 mb-1">
@@ -526,7 +640,13 @@ const ContentTest: React.FC<ContentTestProps> = ({ onNavigate }) => {
                   <ExternalLink size={14} />
                   View on TikTok
                 </button>
-                <button className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors">
+                <button 
+                  className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors"
+                  onClick={() => {
+                    setSelectedVideo(video);
+                    setShowVideoModal(true);
+                  }}
+                >
                   <Eye size={14} />
                 </button>
               </div>
@@ -597,6 +717,17 @@ const ContentTest: React.FC<ContentTestProps> = ({ onNavigate }) => {
       <div className="flex-1 h-full">
         {activeTabData?.component}
       </div>
+
+      {/* Video Preview Modal */}
+      {showVideoModal && selectedVideo && (
+        <VideoPreviewModal 
+          video={selectedVideo} 
+          onClose={() => {
+            setShowVideoModal(false);
+            setSelectedVideo(null);
+          }}
+        />
+      )}
     </div>
   );
 };
