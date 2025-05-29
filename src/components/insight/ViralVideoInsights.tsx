@@ -569,25 +569,47 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
   };
 
   const VideoCard: React.FC<{ video: VideoPreviewData }> = ({ video }) => {
+    const [showEmbeddedPreview, setShowEmbeddedPreview] = useState(false);
+
     return (
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group"
-           onClick={() => showVideoPreview(video)}>
+           onClick={() => !showEmbeddedPreview && showVideoPreview(video)}>
         <div className="relative">
-          <img 
-            src={video.thumbnailUrl} 
-            alt={video.title}
-            className="w-full h-40 object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/320x180?text=Video+Thumbnail';
-            }}
-          />
-          
-          {/* Play overlay */}
-          <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <div className="bg-white bg-opacity-90 rounded-full p-3">
-              <Play className="w-8 h-8 text-gray-800" />
+          {/* Embedded Video Preview */}
+          {showEmbeddedPreview && video.embedUrl ? (
+            <div className="relative w-full bg-black" style={{ paddingBottom: video.platform === 'tiktok' ? '177.78%' : '56.25%' }}>
+              <iframe
+                src={video.embedUrl}
+                className="absolute inset-0 w-full h-full"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title={`Preview: ${video.title}`}
+              ></iframe>
             </div>
-          </div>
+          ) : (
+            <>
+              <img 
+                src={video.thumbnailUrl} 
+                alt={video.title}
+                className="w-full h-40 object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/320x180?text=Video+Thumbnail';
+                }}
+              />
+              
+              {/* Play overlay */}
+              <div 
+                className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                onMouseEnter={() => setShowEmbeddedPreview(true)}
+                onMouseLeave={() => setShowEmbeddedPreview(false)}
+              >
+                <div className="bg-white bg-opacity-90 rounded-full p-3">
+                  <Play className="w-8 h-8 text-gray-800" />
+                </div>
+              </div>
+            </>
+          )}
           
           {/* Platform badge */}
           <div className={`absolute top-2 left-2 px-2 py-1 text-xs rounded text-white font-medium ${getPlatformColor(video.platform)}`}>
@@ -656,12 +678,24 @@ const ViralVideoInsights: React.FC<ViralVideoInsightsProps> = ({ onNavigate }) =
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  showVideoPreview(video);
+                  setShowEmbeddedPreview(!showEmbeddedPreview);
                 }}
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className={`flex items-center gap-1 text-xs font-medium transition-colors ${
+                  showEmbeddedPreview ? 'text-red-600 hover:text-red-700' : 'text-blue-600 hover:text-blue-700'
+                }`}
               >
                 <Play className="w-3 h-3" />
-                Preview
+                {showEmbeddedPreview ? 'Hide' : 'Preview'}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  showVideoPreview(video);
+                }}
+                className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 font-medium"
+              >
+                <Maximize2 className="w-3 h-3" />
+                Full
               </button>
               <button
                 onClick={(e) => {
